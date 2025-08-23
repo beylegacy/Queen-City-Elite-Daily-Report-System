@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Front Desk Management Template</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+            overflow-x: auto;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 15px 25px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #6c757d;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab-btn:hover {
+            background: rgba(52, 152, 219, 0.1);
+            color: #3498db;
+        }
+
+        .tab-btn.active {
+            color: #3498db;
+            border-bottom-color: #3498db;
+            background: rgba(52, 152, 219, 0.1);
+        }
+
+        .tab-content {
+            display: none;
+            padding: 30px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .property-selector {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 15px;
+            border-left: 5px solid #3498db;
+        }
+
+        .property-selector label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .property-selector select, .property-selector input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .property-selector select:focus, .property-selector input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .guest-log {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+
+        .guest-log-header {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            color: white;
+            padding: 20px;
+            font-weight: 600;
+            font-size: 1.2rem;
+        }
+
+        .guest-entry {
+            padding: 20px;
+            border-bottom: 1px solid #f1f2f6;
+            transition: all 0.3s ease;
+        }
+
+        .guest-entry:hover {
+            background: #f8f9fa;
+            transform: translateX(5px);
+        }
+
+        .guest-entry:last-child {
+            border-bottom: none;
+        }
+
+        .guest-form {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 3fr auto;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .guest-form input, .guest-form textarea {
+            padding: 10px 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+
+        .guest-form input:focus, .guest-form textarea:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .guest-form textarea {
+            resize: vertical;
+            min-height: 40px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
+        }
+
+        .btn-add {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1rem;
+            margin: 20px 0;
+            transition: all 0.3s ease;
+        }
+
+        .btn-add:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.3);
+        }
+
+        .notes-section {
+            margin-top: 30px;
+            padding: 25px;
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            border-radius: 15px;
+            border-left: 5px solid #f39c12;
+        }
+
+        .notes-section h3 {
+            color: #8d4e00;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .notes-section textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 15px;
+            border: 2px solid #f39c12;
+            border-radius: 10px;
+            font-size: 1rem;
+            resize: vertical;
+            background: white;
+            transition: all 0.3s ease;
+        }
+
+        .notes-section textarea:focus {
+            outline: none;
+            border-color: #e67e22;
+            box-shadow: 0 0 0 3px rgba(243, 156, 18, 0.1);
+        }
+
+        .package-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .package-section {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .package-section:hover {
+            border-color: #3498db;
+            transform: translateY(-3px);
+            box-shadow: 0 5px 20px rgba(52, 152, 219, 0.1);
+        }
+
+        .package-section h4 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .package-section input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .package-section input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
+        }
+
+        .package-total {
+            background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            margin-top: 20px;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .checklist {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+
+        .checklist-header {
+            background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);
+            color: white;
+            padding: 20px;
+            font-weight: 600;
+            font-size: 1.2rem;
+        }
+
+        .checklist-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid #f1f2f6;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .checklist-item:hover {
+            background: #f8f9fa;
+        }
+
+        .checklist-item:last-child {
+            border-bottom: none;
+        }
+
+        .checklist-item input[type="checkbox"] {
+            margin-right: 15px;
+            transform: scale(1.2);
+            accent-color: #27ae60;
+        }
+
+        .checklist-item label {
+            font-size: 0.95rem;
+            color: #2c3e50;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .export-section {
+            margin-top: 30px;
+            padding: 25px;
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            border-radius: 15px;
+            border-left: 5px solid #28a745;
+            text-align: center;
+        }
+
+        .export-btn {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .export-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .guest-form {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .package-grid {
+                grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .container {
+                margin: 10px;
+            }
+        }
+
+        .time-badge {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: inline-block;
+            margin-left: 10px;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #27ae60;
+            display: inline-block;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><span class="status-indicator"></span>Enhanced Front Desk Management</h1>
+            <p>Multi-Property Daily Operations Template <span class="time-badge" id="currentTime"></span></p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="showTab('shift1')">1st Shift</button>
+            <button class="tab-btn" onclick="showTab('shift2')">2nd Shift</button>
+            <button class="tab-btn" onclick="showTab('shift3')">3rd Shift</button>
+            <button class="tab-btn" onclick="showTab('packages')">Package Audit</button>
+            <button class="tab-btn" onclick="showTab('notes')">Daily Notes</button>
+            <button class="tab-btn" onclick="showTab('export')">Export & Reports</button>
+        </div>
+
+        <!-- Property Selector (appears on all tabs) -->
+        <div class="property-selector">
+            <div class="form-grid">
+                <div>
+                    <label for="propertySelect">Property Location:</label>
+                    <select id="propertySelect" onchange="updateProperty()">
+                        <option value="north-ascher">North Ascher</option>
+                        <option value="property-2">Property 2</option>
+                        <option value="property-3">Property 3</option>
+                        <option value="property-4">Property 4</option>
+                        <option value="property-5">Property 5</option>
+                        <option value="property-6">Property 6</option>
+                        <option value="property-7">Property 7</option>
+                        <option value="property-8">Property 8</option>
+                        <option value="property-9">Property 9</option>
+                        <option value="property-10">Property 10</option>
+                        <option value="property-11">Property 11</option>
+                        <option value="property-12">Property 12</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="dateInput">Date:</label>
+                    <input type="date" id="dateInput">
+                </div>
+                <div>
+                    <label for="agentName">Front Desk Agent:</label>
+                    <input type="text" id="agentName" placeholder="Enter agent name">
+                </div>
+                <div>
+                    <label for="shiftTime">Shift Time:</label>
+                    <input type="text" id="shiftTime" placeholder="e.g., 3:20pm-11:00pm">
+                </div>
+            </div>
+        </div>
+
+        <!-- 1st Shift Tab -->
+        <div class="tab-content active" id="shift1">
+            <div class="guest-log">
+                <div class="guest-log-header">
+                    1st Shift Guest Check-ins
+                </div>
+                <div id="shift1Guests">
+                    <div class="guest-entry">
+                        <div class="guest-form">
+                            <input type="text" placeholder="Guest Name (from valid ID)" required>
+                            <input type="text" placeholder="Apt #" required>
+                            <input type="time" required>
+                            <textarea placeholder="Notes (incidents, special instructions, etc.)" rows="2"></textarea>
+                            <button class="btn" onclick="removeGuest(this)">Remove</button>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn-add" onclick="addGuest('shift1Guests')">+ Add Guest</button>
+            </div>
+
+            <div class="notes-section">
+                <h3>1st Shift Notes</h3>
+                <textarea placeholder="• Maintenance issues&#10;• Security concerns&#10;• Special arrivals/events&#10;• Guest suite check-outs&#10;• Freight elevator reservations&#10;• Any other important information..."></textarea>
+            </div>
+        </div>
+
+        <!-- 2nd Shift Tab -->
+        <div class="tab-content" id="shift2">
+            <div class="guest-log">
+                <div class="guest-log-header">
+                    2nd Shift Guest Check-ins
+                </div>
+                <div id="shift2Guests">
+                    <div class="guest-entry">
+                        <div class="guest-form">
+                            <input type="text" placeholder="Guest Name (from valid ID)" required>
+                            <input type="text" placeholder="Apt #" required>
+                            <input type="time" required>
+                            <textarea placeholder="Notes (incidents, special instructions, etc.)" rows="2"></textarea>
+                            <button class="btn" onclick="removeGuest(this)">Remove</button>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn-add" onclick="addGuest('shift2Guests')">+ Add Guest</button>
+            </div>
+
+            <div class="notes-section">
+                <h3>2nd Shift Notes</h3>
+                <textarea placeholder="• Maintenance issues&#10;• Security concerns&#10;• Special arrivals/events&#10;• Guest suite check-ins&#10;• Freight elevator reservations&#10;• Delivery notifications&#10;• Any other important information..."></textarea>
+            </div>
+        </div>
+
+        <!-- 3rd Shift Tab -->
+        <div class="tab-content" id="shift3">
+            <div class="guest-log">
+                <div class="guest-log-header">
+                    3rd Shift Guest Check-ins
+                </div>
+                <div id="shift3Guests">
+                    <div class="guest-entry">
+                        <div class="guest-form">
+                            <input type="text" placeholder="Guest Name (from valid ID)" required>
+                            <input type="text" placeholder="Apt #" required>
+                            <input type="time" required>
+                            <textarea placeholder="Notes (incidents, special instructions, etc.)" rows="2"></textarea>
+                            <button class="btn" onclick="removeGuest(this)">Remove</button>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn-add" onclick="addGuest('shift3Guests')">+ Add Guest</button>
+            </div>
+
+            <div class="notes-section">
+                <h3>3rd Shift Notes</h3>
+                <textarea placeholder="• Maintenance issues&#10;• Security concerns&#10;• Special arrivals/events&#10;• Camera monitoring notes&#10;• Any other important information..."></textarea>
+            </div>
+        </div>
+
+        <!-- Package Audit Tab -->
+        <div class="tab-content" id="packages">
+            <h2 style="margin-bottom: 20px; color: #2c3e50;">Package Audit System</h2>
+            
+            <!-- 1st Shift Packages -->
+            <h3 style="color: #27ae60; margin: 20px 0 15px 0;">1st Shift Package Audit</h3>
+            <div class="package-grid">
+                <div class="package-section">
+                    <h4>Oversized</h4>
+                    <input type="number" min="0" value="0" onchange="updatePackageTotal()">
+                </div>
+                <div class="package-section">
+                    <h4>1st Shelf</h4>
+                    <input type="number" min="0" value="0" onchange="updatePackageTotal()">
+                </div>
+                <div class="package-section">
+                    <h4>2nd Shelf</h4>
+                    <input type="number" min="0" value="0" onchange="updatePackageTotal()">
+                </div>
+                <div class="package-section">
+                    <h4>3rd Shelf</h4>
+                    <input type="number" min="0" value="0" onchange="updatePackageTotal()">
+                </div>
+                <div class="package-section">
+                    <h4>4th Shelf</h4>
+                    <input type="number" min="0" value="0" onchange="updatePackageTotal()">
+                </div>
+                <div class="package-section">
+                    <h4>Bin 1</h4>
+                    <input type="number" min="0" value="0" onchange="updatePackageTotal()">
+                </div>
+                <div class="package-section">
+                    <h4>Bin 2</h4>
+                    <input type="number" min="0" value="0" onchange="updatePackageTotal()">
+                </div>
+                <div class="package-section">
+                    <h4>Bin 3</h4>
+                    <input type="number" min="0" value="0" onchange="updatePackageTotal()">
+                </div>
+                <div class="package-section">
+                    <h4>Bin 4</h4>
+                    <input type="number" min="0" value="0" onchange="updatePackageTotal()">
+                </div>
+                <div class="package-section">
+                    <h4>Bin 5</h4>
+                    <input type="number" min="0" value="0" onchange="updatePackageTotal()">
+                </div>
+                <div class="package-section">
+                    <h4>Bin 6</h4>
+                    <input type="number" min="0" value="0" onchange="updatePackageTotal()">
+                </div>
+            </div>
+
+            <!-- 2nd Shift Packages -->
+            <h3 style="color: #e67e22; margin: 30px 0 15px 0;">2nd Shift Package Audit</h3>
+            <div class="package-grid">
+                <div class="package-section">
+                    <h4>Oversized</h4>
+                    <input type="number" min="0" value="0" onchange="updatePackageTotal()">
+                </div>
+                <div class="package-section">
+                    <h4>1st Shelf</h4>
+                    <input type="number" min="0" value="0" onchange="updatePackageTotal()">
+                </div>
+                <div class="package-section">
+                    <h4>2nd Shelf</h4>
+                    <input type="number" min="0" value="0" onchange="updatePackageTotal()">
+                </div>
+                <div class="package-section">
+                    <h4>3rd Shelf</h4>
+                    <input type="number" min="0" value="0" onchange="updatePackageTotal()">
+                </div>
+                <div class="package-section">
+                    <h4>4th Shelf</h4>
+                    <input type="number" min="0" value="0" onchange="updatePackageTotal()">
+                </div>
+                <div class="package-section">
+                    <h4>Bin 1</h4>
+                    <input type="number" min="0" value="0" onchange="updatePackageTotal()">
+                </div>
+                <div class="package-section">
+                    <h4>Bin 2</h4>
+                    <input type="number" min="0" value="0" onchange="updatePackageTotal()">
+                </div>
+                <div class="package-section">
+                    <h4>Bin 3</h4>
+                    <input type="number" min="0" value="0" onchange="updatePackageTotal()">
+                </div>
+                <div class="package-section">
+                    <h4>Bin 4</h4>
+                    <input type="number" min="0" value="0" onchange="updatePackageTotal()">
+                </div>
+                <div class="package-section">
+                    <h4>Bin 5</h4>
+                    <input type="number" min="0" value="0" onchange="updatePackageTotal()">
+                </div>
+                <div class="package-section">
+                    <h4>Bin 6</h4>
+                    <input type="number" min="0" value="0" onchange="updatePackageTotal()">
+                </div>
+            </div>
+
+            <!-- 3rd Shift Packages -->
+            <h3 style="color: #9b59b6; margin: 30px 0 15px 0;">3rd Shift Package Audit</h3>
+            <div class="package-grid">
+                <div class="package-section">
+                    <h4>Oversized</h4>
+                    <input type="number" min="0" value="0" onchange="updatePackageTotal()">
+                </div>
+                <div class="package-section">
+                    <h4>1st Shelf</h4>
+                    <input type="number" min="0" value="0" onchange="updatePackageTotal()">
+                </div>
+                <div class="package-section">
+                    <h4>2nd Shelf</h4>
+                    <input type="number" min="0" value="0" onchange="updatePackageTotal()">
+                </div>
+                <div class="package-section">
+                    <h4>3rd Shelf</h4>
+                    <input type="number" min="0" value="0" onchange="updatePackageTotal()">
+                </div>
+                <div class="package-section">
+                    <h4>4th Shelf</h4>
+                    <input type="number" min="0" value="0" onchange="updatePackageTotal()">
+                </div>
+                <div class="package-section">
+                    <h4>Bin 1</h4>
+                    <input type="number" min="0" value="0" onchange="updatePackageTotal()">
+                </div>
+                <div class="package-section">
+                    <h4>Bin 2</h4>
+                    <input type="number" min="0" value="0" onchange="updatePackageTotal()">
+                </div>
+                <div class="package-section">
+                    <h4>Bin 3</h4>
+                    <input type="number" min="0" value="0" onchange="updatePackageTotal()">
+                </div>
+                <div class="package-section">
+                    <h4>Bin 4</h4>
+                    <input type="number" min="0" value="0" onchange="updatePackageTotal()">
+                </div>
+                <div class="package-section">
+                    <h4>Bin 5</h4>
+                    <input type="number" min="0" value="0" onchange="updatePackageTotal()">
+                </div>
+                <div class="package-section">
+                    <h4>Bin 6</h4>
+                    <input type="number" min="0" value="0" onchange="updatePackageTotal()">
+                </div>
+            </div>
+
+            <div class="package-total">
+                Total Packages on Site: <span id="grandTotal">0</span>
+            </div>
+        </div>
+
+        <!-- Daily Notes Tab -->
+        <div class="tab-content" id="notes">
+            <div class="checklist">
+                <div class="checklist-header">
+                    Daily Duties Checklist
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox" id="duty1">
+                    <label for="duty1">Cleaned Lobby/Hallways/Elevators (All Shifts)</label>
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox" id="duty2">
+                    <label for="duty2">Cleaned coffee area and refilled all supplies</label>
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox" id="duty3">
+                    <label for="duty3">Assisted residents, guests, and vendors</label>
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox" id="duty4">
+                    <label for="duty4">Confirmed all visitor and vendor access</label>
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox" id="duty5">
+                    <label for="duty5">Conducted package audit at beginning of shift</label>
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox" id="duty6">
+                    <label for="duty6">Organized and labeled incoming packages</label>
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox" id="duty7">
+                    <label for="duty7">Marked packages in Entry as picked up</label>
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox" id="duty8">
+                    <label for="duty8">Monitored cameras (3rd Shift task)</label>
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox" id="duty9">
+                    <label for="duty9">Charged concierge desk phone</label>
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox" id="duty10">
+                    <label for="duty10">Audited lock box at beginning and end of shift</label>
+                </div>
+            </div>
+
+            <div class="notes-section" style="margin-top: 30px;">
+                <h3>Engineering / Building Security Notes</h3>
+                <textarea placeholder="• Building maintenance issues&#10;• Security incidents or concerns&#10;• Equipment malfunctions&#10;• Safety notifications&#10;• Any infrastructure-related notes..."></textarea>
+            </div>
+
+            <div class="notes-section">
+                <h3>Resident/Front Desk Notes</h3>
+                <textarea placeholder="•
