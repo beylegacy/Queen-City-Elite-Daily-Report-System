@@ -1,0 +1,178 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(210, 20%, 98%);
+  --foreground: hsl(222.2, 84%, 4.9%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(222.2, 84%, 4.9%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(222.2, 84%, 4.9%);
+  --primary: hsl(217, 91%, 60%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(210, 40%, 96%);
+  --secondary-foreground: hsl(222.2, 84%, 4.9%);
+  --muted: hsl(210, 40%, 96%);
+  --muted-foreground: hsl(215.4, 16.3%, 46.9%);
+  --accent: hsl(210, 40%, 96%);
+  --accent-foreground: hsl(222.2, 84%, 4.9%);
+  --destructive: hsl(0, 84.2%, 60.2%);
+  --destructive-foreground: hsl(210, 40%, 98%);
+  --border: hsl(214.3, 31.8%, 91.4%);
+  --input: hsl(214.3, 31.8%, 91.4%);
+  --ring: hsl(217, 91%, 60%);
+  --chart-1: hsl(217, 91%, 60%);
+  --chart-2: hsl(159.7826, 100%, 36.0784%);
+  --chart-3: hsl(42.0290, 92.8251%, 56.2745%);
+  --chart-4: hsl(147.1429, 78.5047%, 41.9608%);
+  --chart-5: hsl(341.4894, 75.2000%, 50.9804%);
+  --radius: 0.5rem;
+  
+  /* Design-specific colors */
+  --slate-50: hsl(210, 40%, 98%);
+  --slate-100: hsl(210, 40%, 96%);
+  --slate-200: hsl(214.3, 31.8%, 91.4%);
+  --slate-300: hsl(212.7, 26.8%, 83.9%);
+  --slate-400: hsl(215.4, 16.3%, 46.9%);
+  --slate-500: hsl(215.4, 16.3%, 46.9%);
+  --slate-600: hsl(215.3, 19.3%, 34.5%);
+  --slate-700: hsl(215.3, 25%, 26.7%);
+  --slate-800: hsl(217.2, 32.6%, 17.5%);
+  --slate-900: hsl(222.2, 84%, 4.9%);
+  
+  --blue-50: hsl(214, 100%, 97%);
+  --blue-100: hsl(214, 95%, 93%);
+  --blue-200: hsl(213, 97%, 87%);
+  --blue-500: hsl(217, 91%, 60%);
+  --blue-600: hsl(221, 83%, 53%);
+  --blue-700: hsl(224, 76%, 48%);
+  
+  --emerald-50: hsl(151, 81%, 96%);
+  --emerald-100: hsl(149, 80%, 90%);
+  --emerald-200: hsl(152, 76%, 80%);
+  --emerald-500: hsl(160, 84%, 39%);
+  --emerald-600: hsl(158, 64%, 52%);
+  
+  --green-100: hsl(142, 76%, 90%);
+  --green-500: hsl(142, 71%, 45%);
+  --green-600: hsl(142, 76%, 36%);
+  --green-800: hsl(145, 63%, 32%);
+  
+  --violet-50: hsl(270, 100%, 98%);
+  --violet-100: hsl(269, 100%, 95%);
+  --violet-200: hsl(269, 100%, 92%);
+  --violet-500: hsl(262, 83%, 58%);
+  --violet-600: hsl(263, 70%, 50%);
+  
+  --amber-100: hsl(48, 100%, 88%);
+  --amber-400: hsl(45, 93%, 58%);
+  --amber-500: hsl(43, 96%, 56%);
+  --amber-600: hsl(32, 95%, 44%);
+  
+  --orange-500: hsl(25, 95%, 53%);
+  --orange-600: hsl(21, 90%, 48%);
+  
+  --red-100: hsl(0, 93%, 94%);
+  --red-500: hsl(0, 84%, 60%);
+  --red-600: hsl(0, 72%, 51%);
+  --red-700: hsl(0, 74%, 42%);
+  
+  --yellow-100: hsl(55, 92%, 88%);
+  --yellow-400: hsl(54, 96%, 68%);
+  
+  --purple-50: hsl(270, 100%, 98%);
+  --purple-600: hsl(271, 81%, 56%);
+  --purple-800: hsl(272, 50%, 36%);
+  
+  --teal-600: hsl(178, 60%, 48%);
+  
+  /* Gradient backgrounds */
+  --gradient-slate-blue: linear-gradient(135deg, var(--slate-800) 0%, var(--blue-600) 100%);
+  --gradient-emerald-green: linear-gradient(135deg, var(--emerald-500) 0%, var(--green-500) 100%);
+  --gradient-violet-purple: linear-gradient(135deg, var(--violet-500) 0%, var(--purple-600) 100%);
+  --gradient-amber-orange: linear-gradient(135deg, var(--amber-500) 0%, var(--orange-500) 100%);
+  --gradient-orange-red: linear-gradient(135deg, var(--orange-500) 0%, var(--red-500) 100%);
+  --gradient-yellow-amber: linear-gradient(135deg, var(--yellow-400) 0%, var(--amber-500) 100%);
+  --gradient-emerald-teal: linear-gradient(135deg, var(--emerald-500) 0%, var(--teal-600) 100%);
+  
+  --font-inter: 'Inter', sans-serif;
+}
+
+.dark {
+  --background: hsl(222.2, 84%, 4.9%);
+  --foreground: hsl(210, 40%, 98%);
+  --card: hsl(222.2, 84%, 4.9%);
+  --card-foreground: hsl(210, 40%, 98%);
+  --popover: hsl(222.2, 84%, 4.9%);
+  --popover-foreground: hsl(210, 40%, 98%);
+  --primary: hsl(217, 91%, 60%);
+  --primary-foreground: hsl(222.2, 84%, 4.9%);
+  --secondary: hsl(217.2, 32.6%, 17.5%);
+  --secondary-foreground: hsl(210, 40%, 98%);
+  --muted: hsl(217.2, 32.6%, 17.5%);
+  --muted-foreground: hsl(215, 20.2%, 65.1%);
+  --accent: hsl(217.2, 32.6%, 17.5%);
+  --accent-foreground: hsl(210, 40%, 98%);
+  --destructive: hsl(0, 62.8%, 30.6%);
+  --destructive-foreground: hsl(210, 40%, 98%);
+  --border: hsl(217.2, 32.6%, 17.5%);
+  --input: hsl(217.2, 32.6%, 17.5%);
+  --ring: hsl(217, 91%, 60%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-inter antialiased;
+    background: var(--slate-50);
+  }
+}
+
+@layer components {
+  .gradient-slate-blue {
+    background: var(--gradient-slate-blue);
+  }
+  
+  .gradient-emerald-green {
+    background: var(--gradient-emerald-green);
+  }
+  
+  .gradient-violet-purple {
+    background: var(--gradient-violet-purple);
+  }
+  
+  .gradient-amber-orange {
+    background: var(--gradient-amber-orange);
+  }
+  
+  .gradient-orange-red {
+    background: var(--gradient-orange-red);
+  }
+  
+  .gradient-yellow-amber {
+    background: var(--gradient-yellow-amber);
+  }
+  
+  .gradient-emerald-teal {
+    background: var(--gradient-emerald-teal);
+  }
+}
+
+@layer utilities {
+  .animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+}
