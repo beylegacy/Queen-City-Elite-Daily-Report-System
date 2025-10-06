@@ -71,19 +71,17 @@ export class MemStorage implements IStorage {
   private initializeDefaultData() {
     // Initialize default properties
     const defaultProperties = [
-      "Queen City Elite - Main",
-      "Queen City Elite - North", 
-      "The Ascher North CLT",
-      "Greystar Property A",
-      "Greystar Property B",
-      "Extreme Property Service - Tower",
-      "Extreme Property Service - Plaza",
-      "Downtown Luxury Apartments",
-      "Midtown Residences",
-      "Eastside Commons",
-      "Westgate Manor",
-      "Northpoint Towers",
-      "Southside Gardens"
+      "Element South Park (North)",
+      "Element South Park (South)",
+      "The Resident At South Park",
+      "Ashton South End",
+      "Hazel South Park",
+      "The Ascher (North)",
+      "The Ascher (South)",
+      "Skye Condos",
+      "Lennox  South Park",
+      "Inspire South Park",
+      "Ascent Uptown"
     ];
 
     defaultProperties.forEach(name => {
