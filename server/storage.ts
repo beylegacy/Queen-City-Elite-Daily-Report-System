@@ -38,7 +38,8 @@ export interface IStorage {
   
   // Package Audits
   getPackageAudits(reportId: string): Promise<PackageAudit[]>;
-  upsertPackageAudit(audit: InsertPackageAudit): Promise<PackageAudit>;
+  createPackageAudit(audit: InsertPackageAudit): Promise<PackageAudit>;
+  deletePackageAudit(id: string): Promise<boolean>;
   
   // Daily Duties
   getDailyDuties(reportId: string): Promise<DailyDuty[]>;
@@ -87,7 +88,7 @@ export class MemStorage implements IStorage {
 
     defaultProperties.forEach(name => {
       const id = randomUUID();
-      this.properties.set(id, { id, name, isActive: true });
+      this.properties.set(id, { id, name, address: null, isActive: true });
     });
 
     // Initialize default email settings
@@ -116,7 +117,12 @@ export class MemStorage implements IStorage {
 
   async createProperty(insertProperty: InsertProperty): Promise<Property> {
     const id = randomUUID();
-    const property: Property = { ...insertProperty, id, isActive: insertProperty.isActive ?? true };
+    const property: Property = { 
+      ...insertProperty, 
+      id, 
+      address: insertProperty.address ?? null,
+      isActive: insertProperty.isActive ?? true 
+    };
     this.properties.set(id, property);
     return property;
   }
@@ -196,24 +202,22 @@ export class MemStorage implements IStorage {
     return Array.from(this.packageAudits.values()).filter(p => p.reportId === reportId);
   }
 
-  async upsertPackageAudit(insertAudit: InsertPackageAudit): Promise<PackageAudit> {
-    // Find existing audit for same report, location, and shift
-    const existing = Array.from(this.packageAudits.values()).find(
-      p => p.reportId === insertAudit.reportId && 
-           p.location === insertAudit.location && 
-           p.shift === insertAudit.shift
-    );
+  async createPackageAudit(insertAudit: InsertPackageAudit): Promise<PackageAudit> {
+    const id = randomUUID();
+    const audit: PackageAudit = { 
+      ...insertAudit, 
+      id,
+      carrier: insertAudit.carrier ?? null,
+      trackingNumber: insertAudit.trackingNumber ?? null,
+      packageType: insertAudit.packageType ?? null,
+      notes: insertAudit.notes ?? null
+    };
+    this.packageAudits.set(id, audit);
+    return audit;
+  }
 
-    if (existing) {
-      const updated = { ...existing, count: insertAudit.count ?? null };
-      this.packageAudits.set(existing.id, updated);
-      return updated;
-    } else {
-      const id = randomUUID();
-      const audit: PackageAudit = { ...insertAudit, id, count: insertAudit.count ?? null };
-      this.packageAudits.set(id, audit);
-      return audit;
-    }
+  async deletePackageAudit(id: string): Promise<boolean> {
+    return this.packageAudits.delete(id);
   }
 
   // Daily Duties

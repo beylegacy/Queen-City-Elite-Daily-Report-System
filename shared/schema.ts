@@ -6,6 +6,7 @@ import { z } from "zod";
 export const properties = pgTable("properties", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
+  address: text("address"),
   isActive: boolean("is_active").default(true),
 });
 
@@ -31,8 +32,14 @@ export const guestCheckins = pgTable("guest_checkins", {
 export const packageAudits = pgTable("package_audits", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   reportId: varchar("report_id").notNull(),
-  location: text("location").notNull(), // "shelfA1", "bin1", "oversized", etc.
-  count: integer("count").default(0),
+  residentName: text("resident_name").notNull(),
+  roomNumber: text("room_number").notNull(),
+  storageLocation: text("storage_location").notNull(), // where in package room: "Shelf A1", "Bin 3", "Oversized Area", etc.
+  carrier: text("carrier"), // UPS, FedEx, USPS, Amazon, etc.
+  trackingNumber: text("tracking_number"),
+  packageType: text("package_type"), // box, envelope, oversized, etc.
+  receivedTime: text("received_time").notNull(),
+  notes: text("notes"),
   shift: text("shift").notNull(),
 });
 
