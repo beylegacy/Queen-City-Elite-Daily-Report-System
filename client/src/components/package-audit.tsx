@@ -1,97 +1,142 @@
 import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { apiRequest } from "@/lib/queryClient";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { DailyReport, PackageAudit, InsertPackageAudit } from "@shared/schema";
-import { Package, TrendingUp, AlertCircle } from "lucide-react";
+import { insertPackageAuditSchema } from "@shared/schema";
+import type { DailyReport, PackageAudit } from "@shared/schema";
+import { Package, Trash2, AlertCircle, Plus } from "lucide-react";
 
 interface PackageAuditProps {
   currentReport: DailyReport | null;
 }
 
-const packageLocations = [
-  { id: "oversized", name: "Oversized", icon: "📏" },
-  { id: "shelf1", name: "1st Shelf", icon: "📦" },
-  { id: "shelf2", name: "2nd Shelf", icon: "📦" },
-  { id: "shelf3", name: "3rd Shelf", icon: "📦" },
-  { id: "shelf4", name: "4th Shelf", icon: "📦" },
-  { id: "bin1", name: "Bin 1", icon: "🗂️" },
-  { id: "bin2", name: "Bin 2", icon: "🗂️" },
-  { id: "bin3", name: "Bin 3", icon: "🗂️" },
-  { id: "bin4", name: "Bin 4", icon: "🗂️" },
-  { id: "bin5", name: "Bin 5", icon: "🗂️" },
-  { id: "bin6", name: "Bin 6", icon: "🗂️" },
+const packageFormSchema = insertPackageAuditSchema.extend({
+  residentName: z.string().min(1, "Resident name is required"),
+  roomNumber: z.string().min(1, "Room number is required"),
+  storageLocation: z.string().min(1, "Storage location is required"),
+  receivedTime: z.string().min(1, "Received time is required"),
+});
+
+const carriers = ["UPS", "FedEx", "USPS", "Amazon", "DHL", "Other"];
+const packageTypes = ["Box", "Envelope", "Oversized", "Letter", "Tube", "Other"];
+const storageLocations = [
+  "Shelf A1", "Shelf A2", "Shelf A3", "Shelf A4",
+  "Shelf B1", "Shelf B2", "Shelf B3", "Shelf B4",
+  "Bin 1", "Bin 2", "Bin 3", "Bin 4", "Bin 5", "Bin 6",
+  "Oversized Area", "Refrigerated", "Secure Storage"
 ];
 
-export default function PackageAudit({ currentReport }: PackageAuditProps) {
-  const [selectedShift, setSelectedShift] = useState<"1st" | "2nd" | "3rd">("1st");
-  const [packageCounts, setPackageCounts] = useState<Record<string, number>>({});
+function getCurrentShift(): "1st" | "2nd" | "3rd" {
+  const hour = new Date().getHours();
+  if (hour >= 7 && hour < 15) return "1st";
+  if (hour >= 15 && hour < 23) return "2nd";
+  return "3rd";
+}
 
+function getCurrentTime(): string {
+  const now = new Date();
+  return now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+}
+
+export default function PackageAudit({ currentReport }: PackageAuditProps) {
+  const [isAddingPackage, setIsAddingPackage] = useState(false);
   const { toast } = useToast();
-  const queryClient = useQueryClient();
 
   const { data: packageAudits = [], isLoading } = useQuery<PackageAudit[]>({
     queryKey: ['/api/reports', currentReport?.id, 'packages'],
     enabled: !!currentReport?.id,
   });
 
-  const updatePackageMutation = useMutation({
-    mutationFn: async (auditData: InsertPackageAudit) => {
-      const response = await apiRequest("PUT", "/api/packages", auditData);
+  const form = useForm<z.infer<typeof packageFormSchema>>({
+    resolver: zodResolver(packageFormSchema),
+    defaultValues: {
+      reportId: currentReport?.id || "",
+      residentName: "",
+      roomNumber: "",
+      storageLocation: "",
+      carrier: "",
+      trackingNumber: "",
+      packageType: "",
+      receivedTime: getCurrentTime(),
+      notes: "",
+      shift: getCurrentShift(),
+    },
+  });
+
+  useEffect(() => {
+    if (currentReport?.id) {
+      form.setValue("reportId", currentReport.id);
+      form.setValue("shift", getCurrentShift());
+      form.setValue("receivedTime", getCurrentTime());
+    }
+  }, [currentReport, form]);
+
+  const createPackageMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof packageFormSchema>) => {
+      const response = await apiRequest("POST", "/api/packages", data);
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/reports', currentReport?.id, 'packages'] });
+      form.reset({
+        reportId: currentReport?.id || "",
+        residentName: "",
+        roomNumber: "",
+        storageLocation: "",
+        carrier: "",
+        trackingNumber: "",
+        packageType: "",
+        receivedTime: getCurrentTime(),
+        notes: "",
+        shift: getCurrentShift(),
+      });
+      setIsAddingPackage(false);
+      toast({
+        title: "Success",
+        description: "Package added successfully",
+      });
     },
     onError: () => {
       toast({
         title: "Error",
-        description: "Failed to update package count.",
+        description: "Failed to add package",
         variant: "destructive",
       });
     },
   });
 
-  // Update local state when data changes
-  useEffect(() => {
-    const counts: Record<string, number> = {};
-    packageAudits.forEach(audit => {
-      const key = `${audit.location}-${audit.shift}`;
-      counts[key] = audit.count || 0;
-    });
-    setPackageCounts(counts);
-  }, [packageAudits]);
+  const deletePackageMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiRequest("DELETE", `/api/packages/${id}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/reports', currentReport?.id, 'packages'] });
+      toast({
+        title: "Success",
+        description: "Package removed successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to remove package",
+        variant: "destructive",
+      });
+    },
+  });
 
-  const handlePackageCountChange = (location: string, count: number) => {
-    if (!currentReport) return;
-
-    const key = `${location}-${selectedShift}`;
-    setPackageCounts({ ...packageCounts, [key]: count });
-
-    updatePackageMutation.mutate({
-      reportId: currentReport.id,
-      location,
-      count,
-      shift: selectedShift,
-    });
-  };
-
-  const getPackageCount = (location: string, shift: string) => {
-    const key = `${location}-${shift}`;
-    return packageCounts[key] || 0;
-  };
-
-  const getTotalPackages = () => {
-    return Object.values(packageCounts).reduce((total, count) => total + count, 0);
-  };
-
-  const getShiftTotal = (shift: string) => {
-    return packageLocations.reduce((total, location) => {
-      return total + getPackageCount(location.id, shift);
-    }, 0);
+  const onSubmit = (data: z.infer<typeof packageFormSchema>) => {
+    createPackageMutation.mutate(data);
   };
 
   if (!currentReport) {
@@ -99,7 +144,7 @@ export default function PackageAudit({ currentReport }: PackageAuditProps) {
       <div className="text-center py-8">
         <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
         <h3 className="text-lg font-semibold text-slate-800 mb-2">No Report Selected</h3>
-        <p className="text-slate-600">Please select a property and date to manage package audits.</p>
+        <p className="text-slate-600">Please select a property and date to manage packages.</p>
       </div>
     );
   }
@@ -109,105 +154,338 @@ export default function PackageAudit({ currentReport }: PackageAuditProps) {
       <div className="gradient-amber-orange text-white p-6 rounded-2xl">
         <h2 className="text-xl font-bold mb-2">
           <Package className="inline mr-3" />
-          Package Audit & Location Tracking
+          Package Tracking - Resident Directory
         </h2>
-        <p className="text-amber-100">Track package locations and maintain inventory accuracy</p>
+        <p className="text-amber-100">Track packages per resident with room location details</p>
       </div>
 
-      {/* Shift Selector */}
-      <div className="bg-white border border-slate-200 rounded-xl p-4">
-        <Label className="block text-sm font-semibold text-slate-700 mb-2">Select Shift to Audit</Label>
-        <Select value={selectedShift} onValueChange={(value: "1st" | "2nd" | "3rd") => setSelectedShift(value)}>
-          <SelectTrigger className="w-full max-w-xs" data-testid="select-audit-shift">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="1st">1st Shift (7AM - 3PM)</SelectItem>
-            <SelectItem value="2nd">2nd Shift (3PM - 11PM)</SelectItem>
-            <SelectItem value="3rd">3rd Shift (11PM - 7AM)</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Package Location Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-        {packageLocations.map((location) => (
-          <div
-            key={location.id}
-            className="bg-white border-2 border-slate-200 rounded-xl p-4 text-center hover:border-amber-400 hover:shadow-lg transition-all"
-            data-testid={`package-location-${location.id}`}
+      {/* Add Package Button / Form */}
+      {!isAddingPackage ? (
+        <div className="bg-white border border-slate-200 rounded-xl p-4">
+          <Button
+            onClick={() => setIsAddingPackage(true)}
+            className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+            data-testid="button-add-package"
           >
-            <div className="text-2xl mb-2">{location.icon}</div>
-            <h4 className="font-semibold text-slate-800 mb-2 text-sm">{location.name}</h4>
-            <Input
-              type="number"
-              min="0"
-              placeholder="0"
-              value={getPackageCount(location.id, selectedShift)}
-              onChange={(e) => handlePackageCountChange(location.id, parseInt(e.target.value) || 0)}
-              className="w-full text-center py-2 px-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 font-bold text-amber-600"
-              data-testid={`input-package-count-${location.id}`}
-            />
-            <div className="text-xs text-slate-500 mt-1">Packages</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Package Summary */}
-      <div className="gradient-violet-purple text-white p-6 rounded-2xl">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 text-center">
-          <div>
-            <div className="text-2xl font-bold" data-testid="text-total-current">
-              {getTotalPackages()}
-            </div>
-            <div className="text-violet-200 text-sm">Total Inventory</div>
-          </div>
-          <div>
-            <div className="text-2xl font-bold" data-testid="text-shift1-total">
-              {getShiftTotal("1st")}
-            </div>
-            <div className="text-violet-200 text-sm">1st Shift Packages</div>
-          </div>
-          <div>
-            <div className="text-2xl font-bold" data-testid="text-shift2-total">
-              {getShiftTotal("2nd")}
-            </div>
-            <div className="text-violet-200 text-sm">2nd Shift Packages</div>
-          </div>
-          <div>
-            <div className="text-2xl font-bold" data-testid="text-shift3-total">
-              {getShiftTotal("3rd")}
-            </div>
-            <div className="text-violet-200 text-sm">3rd Shift Packages</div>
-          </div>
+            <Plus className="mr-2 h-4 w-4" />
+            Add New Package
+          </Button>
         </div>
-      </div>
+      ) : (
+        <div className="bg-white border border-slate-200 rounded-xl p-6">
+          <h3 className="text-lg font-semibold text-slate-800 mb-4">Add New Package</h3>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="residentName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Resident Name *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="John Smith" {...field} data-testid="input-resident-name" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="roomNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Room / Unit Number *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="304" {...field} data-testid="input-room-number" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="storageLocation"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Storage Location *</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-storage-location">
+                            <SelectValue placeholder="Select location" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {storageLocations.map((location) => (
+                            <SelectItem key={location} value={location}>
+                              {location}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="receivedTime"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Received Time *</FormLabel>
+                      <FormControl>
+                        <Input {...field} data-testid="input-received-time" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="carrier"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Carrier (Optional)</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-carrier">
+                            <SelectValue placeholder="Select carrier" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {carriers.map((carrier) => (
+                            <SelectItem key={carrier} value={carrier}>
+                              {carrier}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="trackingNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tracking Number (Optional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="1Z999AA10123456789" {...field} value={field.value || ""} data-testid="input-tracking-number" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="packageType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Package Type (Optional)</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-package-type">
+                            <SelectValue placeholder="Select type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {packageTypes.map((type) => (
+                            <SelectItem key={type} value={type}>
+                              {type}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="shift"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Shift</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-shift">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="1st">1st Shift (7AM - 3PM)</SelectItem>
+                          <SelectItem value="2nd">2nd Shift (3PM - 11PM)</SelectItem>
+                          <SelectItem value="3rd">3rd Shift (11PM - 7AM)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Notes (Optional)</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Additional notes..." {...field} value={field.value || ""} data-testid="input-package-notes" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="flex gap-2">
+                <Button
+                  type="submit"
+                  className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+                  disabled={createPackageMutation.isPending}
+                  data-testid="button-save-package"
+                >
+                  {createPackageMutation.isPending ? "Adding..." : "Add Package"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setIsAddingPackage(false);
+                    form.reset();
+                  }}
+                  data-testid="button-cancel-package"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </div>
+      )}
 
-      {/* Package Activity Log */}
+      {/* Package List */}
       <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
-        <div className="bg-slate-50 p-4 border-b border-slate-200">
-          <h3 className="font-semibold text-slate-800 flex items-center gap-2">
-            <TrendingUp className="w-5 h-5" />
-            Package Activity Summary
+        <div className="bg-gradient-to-r from-violet-500 to-purple-600 p-4 text-white">
+          <h3 className="font-semibold flex items-center justify-between">
+            <span>Package Directory ({packageAudits.length})</span>
+            <span className="text-sm font-normal text-violet-200">Current Report</span>
           </h3>
         </div>
         <div className="p-6">
           {isLoading ? (
-            <div className="text-center py-4 text-slate-500">Loading package data...</div>
+            <div className="text-center py-4 text-slate-500">Loading packages...</div>
           ) : packageAudits.length === 0 ? (
-            <div className="text-center py-4 text-slate-500">No package audits recorded yet.</div>
+            <div className="text-center py-8 text-slate-500">
+              <Package className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+              <p>No packages recorded yet. Click "Add New Package" to start tracking.</p>
+            </div>
           ) : (
             <div className="space-y-3">
-              {["1st", "2nd", "3rd"].map((shift) => (
-                <div key={shift} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                  <span className="text-sm font-medium text-slate-700">{shift} Shift Total:</span>
-                  <span className="text-sm font-bold text-amber-600">{getShiftTotal(shift)} packages</span>
+              {packageAudits.map((pkg) => (
+                <div
+                  key={pkg.id}
+                  className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                  data-testid={`package-item-${pkg.id}`}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center gap-3">
+                        <h4 className="font-bold text-slate-900 text-lg" data-testid={`text-resident-${pkg.id}`}>
+                          {pkg.residentName}
+                        </h4>
+                        <span className="px-3 py-1 bg-blue-100 text-blue-700 text-sm font-medium rounded-full" data-testid={`text-room-${pkg.id}`}>
+                          Room {pkg.roomNumber}
+                        </span>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-slate-600">
+                        <div>
+                          <span className="font-medium">Storage:</span> {pkg.storageLocation}
+                        </div>
+                        <div>
+                          <span className="font-medium">Received:</span> {pkg.receivedTime} ({pkg.shift} Shift)
+                        </div>
+                        {pkg.carrier && (
+                          <div>
+                            <span className="font-medium">Carrier:</span> {pkg.carrier}
+                          </div>
+                        )}
+                        {pkg.trackingNumber && (
+                          <div>
+                            <span className="font-medium">Tracking:</span> {pkg.trackingNumber}
+                          </div>
+                        )}
+                        {pkg.packageType && (
+                          <div>
+                            <span className="font-medium">Type:</span> {pkg.packageType}
+                          </div>
+                        )}
+                      </div>
+                      
+                      {pkg.notes && (
+                        <div className="text-sm text-slate-600 italic bg-slate-50 p-2 rounded">
+                          <span className="font-medium not-italic">Notes:</span> {pkg.notes}
+                        </div>
+                      )}
+                    </div>
+                    
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => deletePackageMutation.mutate(pkg.id)}
+                      disabled={deletePackageMutation.isPending}
+                      data-testid={`button-delete-package-${pkg.id}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
           )}
         </div>
       </div>
+
+      {/* Package Summary */}
+      {packageAudits.length > 0 && (
+        <div className="gradient-violet-purple text-white p-6 rounded-2xl">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 text-center">
+            <div>
+              <div className="text-2xl font-bold" data-testid="text-total-packages">
+                {packageAudits.length}
+              </div>
+              <div className="text-violet-200 text-sm">Total Packages</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold" data-testid="text-shift1-packages">
+                {packageAudits.filter(p => p.shift === "1st").length}
+              </div>
+              <div className="text-violet-200 text-sm">1st Shift</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold" data-testid="text-shift2-packages">
+                {packageAudits.filter(p => p.shift === "2nd").length}
+              </div>
+              <div className="text-violet-200 text-sm">2nd Shift</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold" data-testid="text-shift3-packages">
+                {packageAudits.filter(p => p.shift === "3rd").length}
+              </div>
+              <div className="text-violet-200 text-sm">3rd Shift</div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
