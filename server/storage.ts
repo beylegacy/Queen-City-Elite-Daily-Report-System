@@ -51,7 +51,7 @@ export interface IStorage {
   upsertShiftNotes(notes: InsertShiftNotes): Promise<ShiftNotes>;
   
   // Email Settings
-  getEmailSettings(): Promise<EmailSettings | undefined>;
+  getEmailSettings(propertyId: string): Promise<EmailSettings | undefined>;
   upsertEmailSettings(settings: InsertEmailSettings): Promise<EmailSettings>;
 }
 
@@ -62,7 +62,7 @@ export class MemStorage implements IStorage {
   private packageAudits: Map<string, PackageAudit> = new Map();
   private dailyDuties: Map<string, DailyDuty> = new Map();
   private shiftNotes: Map<string, ShiftNotes> = new Map();
-  private emailSettings: EmailSettings | undefined;
+  private emailSettings: Map<string, EmailSettings> = new Map();
 
   constructor() {
     this.initializeDefaultData();
@@ -89,19 +89,7 @@ export class MemStorage implements IStorage {
       this.properties.set(id, { id, name, address: null, isActive: true });
     });
 
-    // Initialize default email settings
-    this.emailSettings = {
-      id: randomUUID(),
-      recipients: [
-        "rsanders@queencityelite.com",
-        "theaschernorthclt@gmail.com", 
-        "theaschermgr@greystar.com",
-        "dtownes@extremepropertyservice.com"
-      ],
-      dailySendTime: "06:30",
-      format: "both",
-      autoSend: true
-    };
+    // Email settings will be configured per property by users
   }
 
   // Properties
@@ -275,24 +263,37 @@ export class MemStorage implements IStorage {
   }
 
   // Email Settings
-  async getEmailSettings(): Promise<EmailSettings | undefined> {
-    return this.emailSettings;
+  async getEmailSettings(propertyId: string): Promise<EmailSettings | undefined> {
+    return Array.from(this.emailSettings.values()).find(s => s.propertyId === propertyId);
   }
 
   async upsertEmailSettings(insertSettings: InsertEmailSettings): Promise<EmailSettings> {
-    if (this.emailSettings) {
-      this.emailSettings = { ...this.emailSettings, ...insertSettings };
+    const existing = Array.from(this.emailSettings.values()).find(
+      s => s.propertyId === insertSettings.propertyId
+    );
+
+    if (existing) {
+      const updated = { 
+        ...existing, 
+        ...insertSettings,
+        format: insertSettings.format || existing.format,
+        dailySendTime: insertSettings.dailySendTime || existing.dailySendTime,
+        autoSend: insertSettings.autoSend ?? existing.autoSend
+      };
+      this.emailSettings.set(existing.id, updated);
+      return updated;
     } else {
       const id = randomUUID();
-      this.emailSettings = { 
+      const settings: EmailSettings = { 
         ...insertSettings, 
         id,
         format: insertSettings.format || null,
         dailySendTime: insertSettings.dailySendTime || null,
         autoSend: insertSettings.autoSend ?? null
       };
+      this.emailSettings.set(id, settings);
+      return settings;
     }
-    return this.emailSettings;
   }
 }
 
