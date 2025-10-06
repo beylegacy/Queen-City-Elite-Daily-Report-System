@@ -162,7 +162,7 @@ export default function PackageAudit({ currentReport }: PackageAuditProps) {
         <div className="bg-white border border-slate-200 rounded-xl p-4">
           <Button
             onClick={() => setIsAddingPackage(true)}
-            className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+            className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 min-h-[44px] touch-manipulation"
             data-testid="button-add-package"
           >
             <Plus className="mr-2 h-4 w-4" />
@@ -347,7 +347,7 @@ export default function PackageAudit({ currentReport }: PackageAuditProps) {
               <div className="flex gap-2">
                 <Button
                   type="submit"
-                  className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+                  className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 min-h-[44px] touch-manipulation"
                   disabled={createPackageMutation.isPending}
                   data-testid="button-save-package"
                 >
@@ -360,6 +360,7 @@ export default function PackageAudit({ currentReport }: PackageAuditProps) {
                     setIsAddingPackage(false);
                     form.reset();
                   }}
+                  className="min-h-[44px] touch-manipulation"
                   data-testid="button-cancel-package"
                 >
                   Cancel
@@ -395,8 +396,8 @@ export default function PackageAudit({ currentReport }: PackageAuditProps) {
                   className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow"
                   data-testid={`package-item-${pkg.id}`}
                 >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 space-y-2">
+                  <div className="flex flex-col sm:flex-row items-start gap-4">
+                    <div className="flex-1 space-y-2 w-full sm:w-auto">
                       <div className="flex items-center gap-3">
                         <h4 className="font-bold text-slate-900 text-lg" data-testid={`text-resident-${pkg.id}`}>
                           {pkg.residentName}
@@ -437,13 +438,13 @@ export default function PackageAudit({ currentReport }: PackageAuditProps) {
                       )}
                     </div>
                     
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-row sm:flex-col gap-2 w-full sm:w-auto">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => updateStatusMutation.mutate({ id: pkg.id, status: "picked_up" })}
                         disabled={updateStatusMutation.isPending}
-                        className="bg-green-50 hover:bg-green-100 text-green-700 border-green-300"
+                        className="bg-green-50 hover:bg-green-100 active:bg-green-200 text-green-700 border-green-300 flex-1 sm:flex-none touch-manipulation min-h-[44px]"
                         data-testid={`button-picked-up-${pkg.id}`}
                       >
                         Picked Up
@@ -453,7 +454,7 @@ export default function PackageAudit({ currentReport }: PackageAuditProps) {
                         size="sm"
                         onClick={() => updateStatusMutation.mutate({ id: pkg.id, status: "returned_to_sender" })}
                         disabled={updateStatusMutation.isPending}
-                        className="bg-red-50 hover:bg-red-100 text-red-700 border-red-300"
+                        className="bg-red-50 hover:bg-red-100 active:bg-red-200 text-red-700 border-red-300 flex-1 sm:flex-none touch-manipulation min-h-[44px]"
                         data-testid={`button-returned-${pkg.id}`}
                       >
                         Returned
