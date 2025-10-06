@@ -13,6 +13,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { insertPackageAuditSchema } from "@shared/schema";
 import type { DailyReport, PackageAudit } from "@shared/schema";
+import { getCurrentShift } from "@shared/utils";
 import { Package, Trash2, AlertCircle, Plus } from "lucide-react";
 
 interface PackageAuditProps {
@@ -34,13 +35,6 @@ const storageLocations = [
   "Bin 1", "Bin 2", "Bin 3", "Bin 4", "Bin 5", "Bin 6",
   "Oversized Area", "Refrigerated", "Secure Storage"
 ];
-
-function getCurrentShift(): "1st" | "2nd" | "3rd" {
-  const hour = new Date().getHours();
-  if (hour >= 7 && hour < 15) return "1st";
-  if (hour >= 15 && hour < 23) return "2nd";
-  return "3rd";
-}
 
 function getCurrentTime(): string {
   const now = new Date();

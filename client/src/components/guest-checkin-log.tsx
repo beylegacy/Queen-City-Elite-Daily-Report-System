@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { DailyReport, GuestCheckin, InsertGuestCheckin } from "@shared/schema";
+import { getCurrentShift } from "@shared/utils";
 import { UserPlus, Trash2, Users, AlertCircle } from "lucide-react";
 
 interface GuestCheckinLogProps {
@@ -19,7 +20,7 @@ export default function GuestCheckinLog({ currentReport }: GuestCheckinLogProps)
     apartment: "",
     checkInTime: new Date().toTimeString().slice(0, 5), // HH:MM format
     notes: "",
-    shift: "1st" as "1st" | "2nd" | "3rd",
+    shift: getCurrentShift(),
   });
 
   const { toast } = useToast();
@@ -42,7 +43,7 @@ export default function GuestCheckinLog({ currentReport }: GuestCheckinLogProps)
         apartment: "",
         checkInTime: new Date().toTimeString().slice(0, 5),
         notes: "",
-        shift: "1st",
+        shift: getCurrentShift(),
       });
       toast({
         title: "Guest Added",
