@@ -282,18 +282,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
         doc.moveDown(0.5);
       });
 
-      // Package Audits
+      // Package Audits - Grouped by status
       doc.addPage();
       doc.fontSize(16).text('Package Audit', { underline: true });
       doc.moveDown();
-      report.packageAudits.forEach(pkg => {
-        doc.fontSize(12).text(`Resident: ${pkg.residentName} - Room ${pkg.roomNumber}`);
-        doc.fontSize(10).text(`  Storage: ${pkg.storageLocation} | Received: ${pkg.receivedTime} | Shift: ${pkg.shift}`);
-        if (pkg.carrier) doc.fontSize(10).text(`  Carrier: ${pkg.carrier}${pkg.trackingNumber ? ` | Tracking: ${pkg.trackingNumber}` : ''}`);
-        if (pkg.packageType) doc.fontSize(10).text(`  Type: ${pkg.packageType}`);
-        if (pkg.notes) doc.fontSize(10).text(`  Notes: ${pkg.notes}`);
-        doc.moveDown(0.5);
-      });
+      
+      const activePackages = report.packageAudits.filter(p => p.status === 'active');
+      const pickedUpPackages = report.packageAudits.filter(p => p.status === 'picked_up');
+      const returnedPackages = report.packageAudits.filter(p => p.status === 'returned_to_sender');
+      
+      doc.fontSize(14).text(`Active Packages (${activePackages.length})`, { underline: true });
+      doc.moveDown(0.5);
+      if (activePackages.length === 0) {
+        doc.fontSize(10).text('No active packages awaiting pickup');
+      } else {
+        activePackages.forEach(pkg => {
+          doc.fontSize(12).text(`${pkg.residentName} - Room ${pkg.roomNumber}`);
+          doc.fontSize(10).text(`  Storage: ${pkg.storageLocation} | Received: ${pkg.receivedTime} | Shift: ${pkg.shift}`);
+          if (pkg.carrier) doc.fontSize(10).text(`  Carrier: ${pkg.carrier}${pkg.trackingNumber ? ` | Tracking: ${pkg.trackingNumber}` : ''}`);
+          if (pkg.packageType) doc.fontSize(10).text(`  Type: ${pkg.packageType}`);
+          if (pkg.notes) doc.fontSize(10).text(`  Notes: ${pkg.notes}`);
+          doc.moveDown(0.5);
+        });
+      }
+      
+      doc.moveDown();
+      doc.fontSize(14).text(`Picked Up Today (${pickedUpPackages.length})`, { underline: true });
+      doc.moveDown(0.5);
+      if (pickedUpPackages.length === 0) {
+        doc.fontSize(10).text('No packages picked up today');
+      } else {
+        pickedUpPackages.forEach(pkg => {
+          doc.fontSize(12).text(`${pkg.residentName} - Room ${pkg.roomNumber}`);
+          doc.fontSize(10).text(`  Received: ${pkg.receivedTime} | Picked up: ${pkg.statusChangedAt || 'Unknown'}`);
+          if (pkg.statusChangedBy) doc.fontSize(10).text(`  Handled by: ${pkg.statusChangedBy}`);
+          doc.moveDown(0.5);
+        });
+      }
+      
+      doc.moveDown();
+      doc.fontSize(14).text(`Returned to Sender (${returnedPackages.length})`, { underline: true });
+      doc.moveDown(0.5);
+      if (returnedPackages.length === 0) {
+        doc.fontSize(10).text('No packages returned to sender today');
+      } else {
+        returnedPackages.forEach(pkg => {
+          doc.fontSize(12).text(`${pkg.residentName} - Room ${pkg.roomNumber}`);
+          doc.fontSize(10).text(`  Received: ${pkg.receivedTime} | Returned: ${pkg.statusChangedAt || 'Unknown'}`);
+          if (pkg.statusChangedBy) doc.fontSize(10).text(`  Handled by: ${pkg.statusChangedBy}`);
+          if (pkg.carrier) doc.fontSize(10).text(`  Carrier: ${pkg.carrier}${pkg.trackingNumber ? ` | Tracking: ${pkg.trackingNumber}` : ''}`);
+          doc.moveDown(0.5);
+        });
+      }
 
       // Daily Duties
       doc.moveDown(2);
@@ -365,6 +405,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
 
+      // Group packages by status
+      const activePackages = report.packageAudits.filter(p => p.status === 'active');
+      const pickedUpPackages = report.packageAudits.filter(p => p.status === 'picked_up');
+      const returnedPackages = report.packageAudits.filter(p => p.status === 'returned_to_sender');
+
       // Generate HTML email content
       const htmlContent = `
         <h2>Front Desk Daily Report</h2>
@@ -379,16 +424,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ).join('')}
         </ul>
         
-        <h3>Package Summary (${report.packageAudits.length})</h3>
+        <h3>Package Summary</h3>
+        <p><strong>Total Packages:</strong> ${report.packageAudits.length} | <strong>Active:</strong> ${activePackages.length} | <strong>Picked Up:</strong> ${pickedUpPackages.length} | <strong>Returned:</strong> ${returnedPackages.length}</p>
+        
+        <h4>📦 Active Packages (${activePackages.length})</h4>
+        ${activePackages.length === 0 ? '<p><em>No active packages awaiting pickup</em></p>' : `
         <ul>
-          ${report.packageAudits.map(pkg => 
+          ${activePackages.map(pkg => 
             `<li><strong>${pkg.residentName}</strong> - Room ${pkg.roomNumber}<br/>
             Storage: ${pkg.storageLocation} | Received: ${pkg.receivedTime} | Shift: ${pkg.shift}
             ${pkg.carrier ? `<br/>Carrier: ${pkg.carrier}${pkg.trackingNumber ? ` | Tracking: ${pkg.trackingNumber}` : ''}` : ''}
             ${pkg.packageType ? `<br/>Type: ${pkg.packageType}` : ''}
             ${pkg.notes ? `<br/>Notes: ${pkg.notes}` : ''}</li>`
           ).join('')}
-        </ul>
+        </ul>`}
+        
+        <h4>✅ Picked Up Today (${pickedUpPackages.length})</h4>
+        ${pickedUpPackages.length === 0 ? '<p><em>No packages picked up today</em></p>' : `
+        <ul>
+          ${pickedUpPackages.map(pkg => 
+            `<li><strong>${pkg.residentName}</strong> - Room ${pkg.roomNumber}<br/>
+            Received: ${pkg.receivedTime} | Picked up: ${pkg.statusChangedAt || 'Unknown'}
+            ${pkg.statusChangedBy ? `<br/>Handled by: ${pkg.statusChangedBy}` : ''}</li>`
+          ).join('')}
+        </ul>`}
+        
+        <h4>📮 Returned to Sender (${returnedPackages.length})</h4>
+        ${returnedPackages.length === 0 ? '<p><em>No packages returned to sender today</em></p>' : `
+        <ul>
+          ${returnedPackages.map(pkg => 
+            `<li><strong>${pkg.residentName}</strong> - Room ${pkg.roomNumber}<br/>
+            Received: ${pkg.receivedTime} | Returned: ${pkg.statusChangedAt || 'Unknown'}
+            ${pkg.statusChangedBy ? `<br/>Handled by: ${pkg.statusChangedBy}` : ''}
+            ${pkg.carrier ? `<br/>Carrier: ${pkg.carrier}${pkg.trackingNumber ? ` | Tracking: ${pkg.trackingNumber}` : ''}` : ''}</li>`
+          ).join('')}
+        </ul>`}
         
         <h3>Daily Duties</h3>
         <ul>
