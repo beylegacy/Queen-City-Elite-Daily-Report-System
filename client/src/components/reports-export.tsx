@@ -25,12 +25,8 @@ interface ReportsExportProps {
 }
 
 export default function ReportsExport({ currentReport }: ReportsExportProps) {
-  const [emailRecipients, setEmailRecipients] = useState({
-    rsanders: true,
-    ascher: true,
-    greystar: true,
-    extreme: true,
-  });
+  const [emailList, setEmailList] = useState<string[]>([]);
+  const [newEmail, setNewEmail] = useState("");
   const [dailySendTime, setDailySendTime] = useState("06:30");
   const [reportFormat, setReportFormat] = useState<"pdf" | "html" | "both">("both");
   const [autoSend, setAutoSend] = useState(true);
@@ -38,8 +34,11 @@ export default function ReportsExport({ currentReport }: ReportsExportProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: emailSettings } = useQuery<EmailSettings>({
-    queryKey: ['/api/email-settings'],
+  const propertyId = currentReport?.propertyId;
+
+  const { data: emailSettings } = useQuery<EmailSettings | null>({
+    queryKey: ['/api/email-settings', propertyId],
+    enabled: !!propertyId,
   });
 
   const { data: recentReports = [] } = useQuery<DailyReport[]>({
@@ -52,10 +51,10 @@ export default function ReportsExport({ currentReport }: ReportsExportProps) {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/email-settings'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/email-settings', propertyId] });
       toast({
         title: "Settings Updated",
-        description: "Email settings have been saved successfully.",
+        description: "Email settings have been saved for this property.",
       });
     },
     onError: () => {
@@ -147,15 +146,39 @@ export default function ReportsExport({ currentReport }: ReportsExportProps) {
     },
   });
 
+  const handleAddEmail = () => {
+    if (newEmail && !emailList.includes(newEmail)) {
+      setEmailList([...emailList, newEmail]);
+      setNewEmail("");
+    }
+  };
+
+  const handleRemoveEmail = (email: string) => {
+    setEmailList(emailList.filter(e => e !== email));
+  };
+
   const handleSaveEmailSettings = () => {
-    const recipients = [];
-    if (emailRecipients.rsanders) recipients.push("rsanders@queencityelite.com");
-    if (emailRecipients.ascher) recipients.push("theaschernorthclt@gmail.com");
-    if (emailRecipients.greystar) recipients.push("theaschermgr@greystar.com");
-    if (emailRecipients.extreme) recipients.push("dtownes@extremepropertyservice.com");
+    if (!propertyId) {
+      toast({
+        title: "Error",
+        description: "Please select a property first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (emailList.length === 0) {
+      toast({
+        title: "Error",
+        description: "Please add at least one email recipient.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     updateEmailSettingsMutation.mutate({
-      recipients,
+      propertyId,
+      recipients: emailList,
       dailySendTime,
       format: reportFormat,
       autoSend,
@@ -166,17 +189,18 @@ export default function ReportsExport({ currentReport }: ReportsExportProps) {
   useEffect(() => {
     if (emailSettings) {
       const recipients = emailSettings.recipients as string[];
-      setEmailRecipients({
-        rsanders: recipients.includes("rsanders@queencityelite.com"),
-        ascher: recipients.includes("theaschernorthclt@gmail.com"),
-        greystar: recipients.includes("theaschermgr@greystar.com"),
-        extreme: recipients.includes("dtownes@extremepropertyservice.com"),
-      });
+      setEmailList(recipients);
       setDailySendTime(emailSettings.dailySendTime || "06:30");
       setReportFormat(emailSettings.format as "pdf" | "html" | "both");
       setAutoSend(emailSettings.autoSend ?? true);
+    } else if (propertyId) {
+      // Reset form when property changes and no settings exist
+      setEmailList([]);
+      setDailySendTime("06:30");
+      setReportFormat("both");
+      setAutoSend(true);
     }
-  }, [emailSettings]);
+  }, [emailSettings, propertyId]);
 
   const canExport = currentReport !== null;
 
@@ -201,44 +225,48 @@ export default function ReportsExport({ currentReport }: ReportsExportProps) {
         <div className="p-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div>
-              <Label className="block text-sm font-semibold text-slate-700 mb-3">Recipients</Label>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                  <span className="text-sm text-slate-700">rsanders@queencityelite.com</span>
-                  <Checkbox
-                    checked={emailRecipients.rsanders}
-                    onCheckedChange={(checked) => setEmailRecipients({ ...emailRecipients, rsanders: !!checked })}
-                    className="text-emerald-500"
-                    data-testid="checkbox-recipient-rsanders"
-                  />
-                </div>
-                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                  <span className="text-sm text-slate-700">theaschernorthclt@gmail.com</span>
-                  <Checkbox
-                    checked={emailRecipients.ascher}
-                    onCheckedChange={(checked) => setEmailRecipients({ ...emailRecipients, ascher: !!checked })}
-                    className="text-emerald-500"
-                    data-testid="checkbox-recipient-ascher"
-                  />
-                </div>
-                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                  <span className="text-sm text-slate-700">theaschermgr@greystar.com</span>
-                  <Checkbox
-                    checked={emailRecipients.greystar}
-                    onCheckedChange={(checked) => setEmailRecipients({ ...emailRecipients, greystar: !!checked })}
-                    className="text-emerald-500"
-                    data-testid="checkbox-recipient-greystar"
-                  />
-                </div>
-                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                  <span className="text-sm text-slate-700">dtownes@extremepropertyservice.com</span>
-                  <Checkbox
-                    checked={emailRecipients.extreme}
-                    onCheckedChange={(checked) => setEmailRecipients({ ...emailRecipients, extreme: !!checked })}
-                    className="text-emerald-500"
-                    data-testid="checkbox-recipient-extreme"
-                  />
-                </div>
+              <Label className="block text-sm font-semibold text-slate-700 mb-3">
+                Recipients for {propertyId ? 'this property' : 'selected property'}
+              </Label>
+              <div className="space-y-2 mb-3">
+                {emailList.map((email, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                    <span className="text-sm text-slate-700">{email}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRemoveEmail(email)}
+                      className="text-red-500 hover:text-red-700"
+                      data-testid={`button-remove-email-${index}`}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                ))}
+                {emailList.length === 0 && (
+                  <div className="text-sm text-slate-500 italic p-3 bg-slate-50 rounded-lg">
+                    No recipients added yet
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  type="email"
+                  placeholder="email@example.com"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleAddEmail()}
+                  className="flex-1"
+                  data-testid="input-new-email"
+                />
+                <Button
+                  onClick={handleAddEmail}
+                  disabled={!newEmail}
+                  variant="outline"
+                  data-testid="button-add-email"
+                >
+                  Add
+                </Button>
               </div>
             </div>
             <div>
