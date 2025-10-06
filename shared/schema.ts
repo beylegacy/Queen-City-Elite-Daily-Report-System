@@ -61,6 +61,7 @@ export const shiftNotes = pgTable("shift_notes", {
 
 export const emailSettings = pgTable("email_settings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  propertyId: varchar("property_id").notNull(),
   recipients: jsonb("recipients").notNull(), // Array of email addresses
   dailySendTime: text("daily_send_time").default("06:30"),
   format: text("format").default("both"), // "pdf", "html", "both"
