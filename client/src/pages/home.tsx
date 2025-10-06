@@ -60,7 +60,7 @@ export default function Home() {
                 <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
                 <h1 className="text-2xl lg:text-3xl font-bold">Front Desk Daily Report System</h1>
               </div>
-              <p className="text-blue-100 mt-2 text-sm lg:text-base">Multi-Property Operations Management</p>
+              <p className="text-blue-100 mt-2 text-sm lg:text-base">Queen City Elite LLC</p>
             </div>
             <div className="text-right">
               <div className="bg-blue-500/20 px-4 py-2 rounded-lg">
