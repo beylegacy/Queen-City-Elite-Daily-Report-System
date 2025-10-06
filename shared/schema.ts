@@ -41,6 +41,9 @@ export const packageAudits = pgTable("package_audits", {
   receivedTime: text("received_time").notNull(),
   notes: text("notes"),
   shift: text("shift").notNull(),
+  status: text("status").notNull().default("active"), // "active", "picked_up", "returned_to_sender"
+  statusChangedAt: timestamp("status_changed_at"),
+  statusChangedBy: text("status_changed_by"),
 });
 
 export const dailyDuties = pgTable("daily_duties", {

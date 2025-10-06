@@ -39,6 +39,7 @@ export interface IStorage {
   // Package Audits
   getPackageAudits(reportId: string): Promise<PackageAudit[]>;
   createPackageAudit(audit: InsertPackageAudit): Promise<PackageAudit>;
+  updatePackageStatus(id: string, status: "picked_up" | "returned_to_sender", changedBy: string): Promise<PackageAudit | undefined>;
   deletePackageAudit(id: string): Promise<boolean>;
   
   // Daily Duties
@@ -196,10 +197,27 @@ export class MemStorage implements IStorage {
       carrier: insertAudit.carrier ?? null,
       trackingNumber: insertAudit.trackingNumber ?? null,
       packageType: insertAudit.packageType ?? null,
-      notes: insertAudit.notes ?? null
+      notes: insertAudit.notes ?? null,
+      status: "active",
+      statusChangedAt: null,
+      statusChangedBy: null
     };
     this.packageAudits.set(id, audit);
     return audit;
+  }
+
+  async updatePackageStatus(id: string, status: "picked_up" | "returned_to_sender", changedBy: string): Promise<PackageAudit | undefined> {
+    const existing = this.packageAudits.get(id);
+    if (!existing) return undefined;
+
+    const updated = {
+      ...existing,
+      status,
+      statusChangedAt: new Date(),
+      statusChangedBy: changedBy
+    };
+    this.packageAudits.set(id, updated);
+    return updated;
   }
 
   async deletePackageAudit(id: string): Promise<boolean> {

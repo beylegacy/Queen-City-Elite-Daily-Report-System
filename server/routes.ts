@@ -146,6 +146,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/packages/:id/status", async (req, res) => {
+    try {
+      const { status, changedBy } = req.body;
+      if (status !== "picked_up" && status !== "returned_to_sender") {
+        return res.status(400).json({ message: "Invalid status" });
+      }
+      const updated = await storage.updatePackageStatus(req.params.id, status, changedBy || "Agent");
+      if (updated) {
+        res.json(updated);
+      } else {
+        res.status(404).json({ message: "Package not found" });
+      }
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update package status" });
+    }
+  });
+
   app.delete("/api/packages/:id", async (req, res) => {
     try {
       const success = await storage.deletePackageAudit(req.params.id);

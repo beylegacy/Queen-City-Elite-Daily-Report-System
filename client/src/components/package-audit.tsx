@@ -45,10 +45,14 @@ export default function PackageAudit({ currentReport }: PackageAuditProps) {
   const [isAddingPackage, setIsAddingPackage] = useState(false);
   const { toast } = useToast();
 
-  const { data: packageAudits = [], isLoading } = useQuery<PackageAudit[]>({
+  const { data: allPackages = [], isLoading } = useQuery<PackageAudit[]>({
     queryKey: ['/api/reports', currentReport?.id, 'packages'],
     enabled: !!currentReport?.id,
   });
+
+  // Filter active packages for display
+  const activePackages = allPackages.filter(pkg => pkg.status === "active");
+  const completedPackages = allPackages.filter(pkg => pkg.status !== "active");
 
   const form = useForm<z.infer<typeof packageFormSchema>>({
     resolver: zodResolver(packageFormSchema),
@@ -108,22 +112,22 @@ export default function PackageAudit({ currentReport }: PackageAuditProps) {
     },
   });
 
-  const deletePackageMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const response = await apiRequest("DELETE", `/api/packages/${id}`);
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: "picked_up" | "returned_to_sender" }) => {
+      const response = await apiRequest("PATCH", `/api/packages/${id}/status`, { status, changedBy: currentReport?.agentName || "Agent" });
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['/api/reports', currentReport?.id, 'packages'] });
       toast({
         title: "Success",
-        description: "Package removed successfully",
+        description: variables.status === "picked_up" ? "Package marked as picked up" : "Package marked as returned to sender",
       });
     },
     onError: () => {
       toast({
         title: "Error",
-        description: "Failed to remove package",
+        description: "Failed to update package status",
         variant: "destructive",
       });
     },
@@ -367,24 +371,25 @@ export default function PackageAudit({ currentReport }: PackageAuditProps) {
       )}
 
       {/* Package List */}
+      {/* Active Packages */}
       <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
         <div className="bg-gradient-to-r from-violet-500 to-purple-600 p-4 text-white">
           <h3 className="font-semibold flex items-center justify-between">
-            <span>Package Directory ({packageAudits.length})</span>
-            <span className="text-sm font-normal text-violet-200">Current Report</span>
+            <span>Active Packages ({activePackages.length})</span>
+            <span className="text-sm font-normal text-violet-200">Awaiting Pickup</span>
           </h3>
         </div>
         <div className="p-6">
           {isLoading ? (
             <div className="text-center py-4 text-slate-500">Loading packages...</div>
-          ) : packageAudits.length === 0 ? (
+          ) : activePackages.length === 0 ? (
             <div className="text-center py-8 text-slate-500">
               <Package className="w-12 h-12 mx-auto mb-3 text-slate-300" />
-              <p>No packages recorded yet. Click "Add New Package" to start tracking.</p>
+              <p>No active packages. All packages have been picked up or returned.</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {packageAudits.map((pkg) => (
+              {activePackages.map((pkg) => (
                 <div
                   key={pkg.id}
                   className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow"
@@ -432,15 +437,28 @@ export default function PackageAudit({ currentReport }: PackageAuditProps) {
                       )}
                     </div>
                     
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => deletePackageMutation.mutate(pkg.id)}
-                      disabled={deletePackageMutation.isPending}
-                      data-testid={`button-delete-package-${pkg.id}`}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex flex-col gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => updateStatusMutation.mutate({ id: pkg.id, status: "picked_up" })}
+                        disabled={updateStatusMutation.isPending}
+                        className="bg-green-50 hover:bg-green-100 text-green-700 border-green-300"
+                        data-testid={`button-picked-up-${pkg.id}`}
+                      >
+                        Picked Up
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => updateStatusMutation.mutate({ id: pkg.id, status: "returned_to_sender" })}
+                        disabled={updateStatusMutation.isPending}
+                        className="bg-red-50 hover:bg-red-100 text-red-700 border-red-300"
+                        data-testid={`button-returned-${pkg.id}`}
+                      >
+                        Returned
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -450,32 +468,39 @@ export default function PackageAudit({ currentReport }: PackageAuditProps) {
       </div>
 
       {/* Package Summary */}
-      {packageAudits.length > 0 && (
+      {allPackages.length > 0 && (
         <div className="gradient-violet-purple text-white p-6 rounded-2xl">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 text-center">
+          <h3 className="text-lg font-bold mb-4">Package Summary</h3>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
+            <div>
+              <div className="text-2xl font-bold" data-testid="text-active-packages">
+                {activePackages.length}
+              </div>
+              <div className="text-violet-200 text-sm">Active</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold" data-testid="text-picked-up-packages">
+                {allPackages.filter(p => p.status === "picked_up").length}
+              </div>
+              <div className="text-violet-200 text-sm">Picked Up</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold" data-testid="text-returned-packages">
+                {allPackages.filter(p => p.status === "returned_to_sender").length}
+              </div>
+              <div className="text-violet-200 text-sm">Returned</div>
+            </div>
             <div>
               <div className="text-2xl font-bold" data-testid="text-total-packages">
-                {packageAudits.length}
+                {allPackages.length}
               </div>
-              <div className="text-violet-200 text-sm">Total Packages</div>
+              <div className="text-violet-200 text-sm">Total Today</div>
             </div>
             <div>
-              <div className="text-2xl font-bold" data-testid="text-shift1-packages">
-                {packageAudits.filter(p => p.shift === "1st").length}
+              <div className="text-2xl font-bold" data-testid="text-shift-packages">
+                {activePackages.filter(p => p.shift === getCurrentShift()).length}
               </div>
-              <div className="text-violet-200 text-sm">1st Shift</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold" data-testid="text-shift2-packages">
-                {packageAudits.filter(p => p.shift === "2nd").length}
-              </div>
-              <div className="text-violet-200 text-sm">2nd Shift</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold" data-testid="text-shift3-packages">
-                {packageAudits.filter(p => p.shift === "3rd").length}
-              </div>
-              <div className="text-violet-200 text-sm">3rd Shift</div>
+              <div className="text-violet-200 text-sm">Current Shift</div>
             </div>
           </div>
         </div>
