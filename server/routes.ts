@@ -213,9 +213,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Email Settings
-  app.get("/api/email-settings", async (_req, res) => {
+  app.get("/api/email-settings/:propertyId", async (req, res) => {
     try {
-      const settings = await storage.getEmailSettings();
+      const settings = await storage.getEmailSettings(req.params.propertyId);
       res.json(settings);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch email settings" });
@@ -330,9 +330,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Report not found" });
       }
 
-      const emailSettings = await storage.getEmailSettings();
+      const emailSettings = await storage.getEmailSettings(report.propertyId);
       if (!emailSettings) {
-        return res.status(400).json({ message: "Email settings not configured" });
+        return res.status(400).json({ message: "Email settings not configured for this property" });
       }
 
       const property = await storage.getProperty(report.propertyId);
