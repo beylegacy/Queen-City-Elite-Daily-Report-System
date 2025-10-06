@@ -136,13 +136,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/packages", async (req, res) => {
+  app.post("/api/packages", async (req, res) => {
     try {
       const validatedData = insertPackageAuditSchema.parse(req.body);
-      const packageAudit = await storage.upsertPackageAudit(validatedData);
+      const packageAudit = await storage.createPackageAudit(validatedData);
       res.json(packageAudit);
     } catch (error) {
       res.status(400).json({ message: "Invalid package audit data" });
+    }
+  });
+
+  app.delete("/api/packages/:id", async (req, res) => {
+    try {
+      const success = await storage.deletePackageAudit(req.params.id);
+      if (success) {
+        res.json({ message: "Package deleted successfully" });
+      } else {
+        res.status(404).json({ message: "Package not found" });
+      }
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete package" });
     }
   });
 
@@ -257,7 +270,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       doc.fontSize(16).text('Package Audit', { underline: true });
       doc.moveDown();
       report.packageAudits.forEach(pkg => {
-        doc.fontSize(12).text(`${pkg.location}: ${pkg.count} packages (${pkg.shift} shift)`);
+        doc.fontSize(12).text(`Resident: ${pkg.residentName} - Room ${pkg.roomNumber}`);
+        doc.fontSize(10).text(`  Storage: ${pkg.storageLocation} | Received: ${pkg.receivedTime} | Shift: ${pkg.shift}`);
+        if (pkg.carrier) doc.fontSize(10).text(`  Carrier: ${pkg.carrier}${pkg.trackingNumber ? ` | Tracking: ${pkg.trackingNumber}` : ''}`);
+        if (pkg.packageType) doc.fontSize(10).text(`  Type: ${pkg.packageType}`);
+        if (pkg.notes) doc.fontSize(10).text(`  Notes: ${pkg.notes}`);
+        doc.moveDown(0.5);
       });
 
       // Daily Duties
@@ -344,10 +362,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ).join('')}
         </ul>
         
-        <h3>Package Summary</h3>
+        <h3>Package Summary (${report.packageAudits.length})</h3>
         <ul>
           ${report.packageAudits.map(pkg => 
-            `<li>${pkg.location}: ${pkg.count} packages</li>`
+            `<li><strong>${pkg.residentName}</strong> - Room ${pkg.roomNumber}<br/>
+            Storage: ${pkg.storageLocation} | Received: ${pkg.receivedTime} | Shift: ${pkg.shift}
+            ${pkg.carrier ? `<br/>Carrier: ${pkg.carrier}${pkg.trackingNumber ? ` | Tracking: ${pkg.trackingNumber}` : ''}` : ''}
+            ${pkg.packageType ? `<br/>Type: ${pkg.packageType}` : ''}
+            ${pkg.notes ? `<br/>Notes: ${pkg.notes}` : ''}</li>`
           ).join('')}
         </ul>
         
@@ -361,7 +383,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       await transporter.sendMail({
         from: process.env.SMTP_USER,
-        to: emailSettings.recipients,
+        to: emailSettings.recipients as string[],
         subject: `Daily Report - ${property?.name} - ${report.reportDate}`,
         html: htmlContent
       });
