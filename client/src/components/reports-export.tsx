@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -163,7 +163,7 @@ export default function ReportsExport({ currentReport }: ReportsExportProps) {
   };
 
   // Initialize form with existing settings
-  useState(() => {
+  useEffect(() => {
     if (emailSettings) {
       const recipients = emailSettings.recipients as string[];
       setEmailRecipients({
@@ -176,7 +176,7 @@ export default function ReportsExport({ currentReport }: ReportsExportProps) {
       setReportFormat(emailSettings.format as "pdf" | "html" | "both");
       setAutoSend(emailSettings.autoSend ?? true);
     }
-  });
+  }, [emailSettings]);
 
   const canExport = currentReport !== null;
 
