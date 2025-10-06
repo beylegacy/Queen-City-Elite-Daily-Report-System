@@ -68,6 +68,23 @@ export const emailSettings = pgTable("email_settings", {
   autoSend: boolean("auto_send").default(true),
 });
 
+export const users = pgTable("users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: text("email").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  role: text("role").notNull(), // "manager" or "agent"
+  name: text("name").notNull(),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const dutyTemplates = pgTable("duty_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  propertyId: varchar("property_id").notNull(),
+  shift: text("shift").notNull(), // "1st", "2nd", "3rd"
+  task: text("task").notNull(),
+  displayOrder: integer("display_order").default(0),
+});
+
 // Insert schemas
 export const insertPropertySchema = createInsertSchema(properties).omit({ id: true });
 export const insertDailyReportSchema = createInsertSchema(dailyReports).omit({ id: true, createdAt: true });
@@ -76,6 +93,8 @@ export const insertPackageAuditSchema = createInsertSchema(packageAudits).omit({
 export const insertDailyDutySchema = createInsertSchema(dailyDuties).omit({ id: true, completedAt: true });
 export const insertShiftNotesSchema = createInsertSchema(shiftNotes).omit({ id: true, updatedAt: true });
 export const insertEmailSettingsSchema = createInsertSchema(emailSettings).omit({ id: true });
+export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
+export const insertDutyTemplateSchema = createInsertSchema(dutyTemplates).omit({ id: true });
 
 // Types
 export type Property = typeof properties.$inferSelect;
@@ -92,6 +111,10 @@ export type ShiftNotes = typeof shiftNotes.$inferSelect;
 export type InsertShiftNotes = z.infer<typeof insertShiftNotesSchema>;
 export type EmailSettings = typeof emailSettings.$inferSelect;
 export type InsertEmailSettings = z.infer<typeof insertEmailSettingsSchema>;
+export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type DutyTemplate = typeof dutyTemplates.$inferSelect;
+export type InsertDutyTemplate = z.infer<typeof insertDutyTemplateSchema>;
 
 // Utility types
 export type ReportWithData = DailyReport & {
