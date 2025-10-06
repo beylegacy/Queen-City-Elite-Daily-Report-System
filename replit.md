@@ -22,6 +22,13 @@ This is a comprehensive front desk management system designed specifically for Q
 - **Enhanced Email Reports**: HTML email templates updated to show complete package information per resident
 - **Better Organization**: Reports now clearly show which packages belong to which residents and their locations
 
+### Property-Specific Email Settings (October 6, 2025)
+- **Isolated Email Lists**: Each property now has its own separate list of email recipients
+- **Dynamic Email Management**: Users can add and remove email addresses for each property through the Reports & Export tab
+- **Targeted Report Delivery**: When a report is sent, only the recipients configured for that specific property receive it
+- **Independent Configuration**: Email settings for one property don't affect other properties
+- **Flexible Recipient Management**: No longer limited to predefined email addresses - users can add any email address per property
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
@@ -53,7 +60,7 @@ Preferred communication style: Simple, everyday language.
   - **Package Audits** (Resident-based): Resident name, room number, storage location, carrier, tracking number, package type, received time, notes, shift
   - **Daily Duties**: Task description, completion status, timestamp
   - **Shift Notes**: Content, shift, update timestamp
-  - **Email Settings**: Recipients, send time, format preferences
+  - **Email Settings**: Property-specific recipients, send time, format preferences (each property has its own email list)
 
 ### Authentication and Authorization
 - **Session Management**: Connect-pg-simple for PostgreSQL-backed session storage
