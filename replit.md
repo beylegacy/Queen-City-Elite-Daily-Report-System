@@ -2,7 +2,25 @@
 
 ## Overview
 
-This is a comprehensive front desk management system designed for property management companies to track daily operations, guest check-ins, package audits, and shift duties. The application provides a centralized platform for front desk agents to manage daily reports, monitor package deliveries, track guest activities, and maintain communication through shift notes. It features automated reporting capabilities with email notifications and PDF generation for management oversight.
+This is a comprehensive front desk management system designed specifically for Queen City Elite LLC concierge agents to track daily operations across multiple properties. The system manages guest check-ins, resident-specific package tracking with room location details, daily duties, and shift notes. The application provides a centralized platform for front desk agents to track individual packages per resident (with carrier, tracking numbers, and storage locations), maintain detailed daily reports, and send automated reports to management via email and PDF.
+
+## Recent Updates (October 2025)
+
+### Package Tracking System Redesign
+- **Resident-Based Tracking**: Complete redesign from location-based counting to individual resident package tracking
+- **Detailed Package Information**: Each package now includes resident name, room number, storage location in the package room, carrier (UPS, FedEx, USPS, Amazon, DHL), tracking number, package type, received time, shift, and notes
+- **Enhanced UI**: New form-based interface for adding packages with all required and optional fields
+- **Package Management**: Ability to add and delete individual packages with real-time summary updates
+
+### Property Management
+- **11 Queen City Elite Properties Added**: Element South Park (North & South), The Resident At South Park, Ashton South End, Hazel South Park, The Ascher (North & South), Skye Condos, Lennox South Park, Inspire South Park, Ascent Uptown
+- **Dynamic Property Addition**: New dialog interface allowing users to add additional properties on-the-fly with name and address
+- **Property Address Tracking**: All properties now include full addresses for better organization
+
+### Reporting Enhancements
+- **Updated PDF Reports**: Package sections now display resident-specific details including room numbers and storage locations
+- **Enhanced Email Reports**: HTML email templates updated to show complete package information per resident
+- **Better Organization**: Reports now clearly show which packages belong to which residents and their locations
 
 ## User Preferences
 
@@ -28,7 +46,14 @@ Preferred communication style: Simple, everyday language.
 - **Database**: PostgreSQL with Drizzle ORM for type-safe database operations
 - **Connection**: Neon Database serverless PostgreSQL for scalable cloud hosting
 - **Schema Management**: Drizzle Kit for migrations and database schema evolution
-- **Data Models**: Comprehensive schema covering properties, daily reports, guest check-ins, package audits, daily duties, shift notes, and email settings
+- **Data Models**: Comprehensive schema covering:
+  - **Properties**: Name, address, active status
+  - **Daily Reports**: Property, date, agent, shift time
+  - **Guest Check-ins**: Guest name, apartment, check-in time, notes, shift
+  - **Package Audits** (Resident-based): Resident name, room number, storage location, carrier, tracking number, package type, received time, notes, shift
+  - **Daily Duties**: Task description, completion status, timestamp
+  - **Shift Notes**: Content, shift, update timestamp
+  - **Email Settings**: Recipients, send time, format preferences
 
 ### Authentication and Authorization
 - **Session Management**: Connect-pg-simple for PostgreSQL-backed session storage
