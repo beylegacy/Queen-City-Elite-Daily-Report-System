@@ -1,12 +1,14 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { Property, DailyReport, InsertDailyReport } from "@shared/schema";
-import { Building, Calendar, Clock, User } from "lucide-react";
+import type { Property, DailyReport, InsertDailyReport, InsertProperty } from "@shared/schema";
+import { Building, Calendar, Clock, User, PlusCircle } from "lucide-react";
 
 interface PropertySelectorProps {
   properties: Property[];
@@ -37,6 +39,33 @@ export default function PropertySelector({
 }: PropertySelectorProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [isAddPropertyOpen, setIsAddPropertyOpen] = useState(false);
+  const [newPropertyName, setNewPropertyName] = useState("");
+  const [newPropertyAddress, setNewPropertyAddress] = useState("");
+
+  const createPropertyMutation = useMutation({
+    mutationFn: async (propertyData: InsertProperty) => {
+      const response = await apiRequest("POST", "/api/properties", propertyData);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/properties'] });
+      setIsAddPropertyOpen(false);
+      setNewPropertyName("");
+      setNewPropertyAddress("");
+      toast({
+        title: "Property Added",
+        description: "New property has been added successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to add property.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const createReportMutation = useMutation({
     mutationFn: async (reportData: InsertDailyReport) => {
@@ -81,6 +110,23 @@ export default function PropertySelector({
     },
   });
 
+  const handleAddProperty = () => {
+    if (!newPropertyName) {
+      toast({
+        title: "Missing Information",
+        description: "Please enter a property name.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    createPropertyMutation.mutate({
+      name: newPropertyName,
+      address: newPropertyAddress || null,
+      isActive: true,
+    });
+  };
+
   const handleCreateOrUpdateReport = () => {
     if (!selectedProperty || !reportDate || !agentName) {
       toast({
@@ -113,18 +159,88 @@ export default function PropertySelector({
             <Building className="w-4 h-4 inline mr-2 text-blue-500" />
             Property Location
           </Label>
-          <Select value={selectedProperty} onValueChange={onPropertyChange} data-testid="select-property">
-            <SelectTrigger className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
-              <SelectValue placeholder="Select Property" />
-            </SelectTrigger>
-            <SelectContent>
-              {properties.map((property) => (
-                <SelectItem key={property.id} value={property.id}>
-                  {property.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex gap-2">
+            <Select value={selectedProperty} onValueChange={onPropertyChange}>
+              <SelectTrigger className="flex-1 px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all" data-testid="select-property">
+                <SelectValue placeholder="Select Property" />
+              </SelectTrigger>
+              <SelectContent>
+                {properties.map((property) => (
+                  <SelectItem key={property.id} value={property.id}>
+                    {property.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            <Dialog open={isAddPropertyOpen} onOpenChange={setIsAddPropertyOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="px-3 border-slate-300 hover:bg-blue-50 hover:border-blue-400"
+                  data-testid="button-add-property-dialog"
+                >
+                  <PlusCircle className="h-5 w-5 text-blue-500" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[500px]">
+                <DialogHeader>
+                  <DialogTitle>Add New Property</DialogTitle>
+                  <DialogDescription>
+                    Add a new property location to the system. You can track daily reports for this property.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div>
+                    <Label htmlFor="property-name" className="block text-sm font-semibold text-slate-700 mb-2">
+                      Property Name *
+                    </Label>
+                    <Input
+                      id="property-name"
+                      placeholder="e.g., Element South Park (North)"
+                      value={newPropertyName}
+                      onChange={(e) => setNewPropertyName(e.target.value)}
+                      data-testid="input-new-property-name"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="property-address" className="block text-sm font-semibold text-slate-700 mb-2">
+                      Property Address (Optional)
+                    </Label>
+                    <Input
+                      id="property-address"
+                      placeholder="e.g., 4425 Sharon Rd Charlotte, NC 28211"
+                      value={newPropertyAddress}
+                      onChange={(e) => setNewPropertyAddress(e.target.value)}
+                      data-testid="input-new-property-address"
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setIsAddPropertyOpen(false);
+                      setNewPropertyName("");
+                      setNewPropertyAddress("");
+                    }}
+                    data-testid="button-cancel-add-property"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleAddProperty}
+                    disabled={createPropertyMutation.isPending}
+                    className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+                    data-testid="button-save-property"
+                  >
+                    {createPropertyMutation.isPending ? "Adding..." : "Add Property"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
         
         <div>

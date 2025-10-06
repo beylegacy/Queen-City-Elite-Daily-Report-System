@@ -250,7 +250,7 @@ export default function PackageAudit({ currentReport }: PackageAuditProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Carrier (Optional)</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value || ""}>
                         <FormControl>
                           <SelectTrigger data-testid="select-carrier">
                             <SelectValue placeholder="Select carrier" />
@@ -289,7 +289,7 @@ export default function PackageAudit({ currentReport }: PackageAuditProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Package Type (Optional)</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value || ""}>
                         <FormControl>
                           <SelectTrigger data-testid="select-package-type">
                             <SelectValue placeholder="Select type" />
