@@ -59,9 +59,9 @@ export interface IStorage {
   
   // Users
   getUserById(id: string): Promise<User | undefined>;
-  getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  updateUserPassword(id: string, password: string): Promise<void>;
+  updateUserPassword(id: string, passwordHash: string, requiresPasswordChange: boolean): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -328,8 +328,8 @@ export class MemStorage implements IStorage {
     return this.users.get(id);
   }
 
-  async getUserByEmail(email: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(u => u.email === email);
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(u => u.username === username);
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
@@ -343,10 +343,11 @@ export class MemStorage implements IStorage {
     return user;
   }
 
-  async updateUserPassword(id: string, passwordHash: string): Promise<void> {
+  async updateUserPassword(id: string, passwordHash: string, requiresPasswordChange: boolean = false): Promise<void> {
     const user = this.users.get(id);
     if (user) {
       user.passwordHash = passwordHash;
+      user.requiresPasswordChange = requiresPasswordChange;
       this.users.set(id, user);
     }
   }

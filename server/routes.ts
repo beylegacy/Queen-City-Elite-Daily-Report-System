@@ -19,17 +19,16 @@ import {
 
 // Configure Passport Local Strategy
 passport.use(new LocalStrategy(
-  { usernameField: 'email' },
-  async (email, password, done) => {
+  async (username, password, done) => {
     try {
-      const user = await storage.getUserByEmail(email);
+      const user = await storage.getUserByUsername(username);
       if (!user) {
-        return done(null, false, { message: 'Invalid email or password' });
+        return done(null, false, { message: 'Invalid username or password' });
       }
       
       const isValidPassword = await bcrypt.compare(password, user.passwordHash);
       if (!isValidPassword) {
-        return done(null, false, { message: 'Invalid email or password' });
+        return done(null, false, { message: 'Invalid username or password' });
       }
       
       return done(null, user);
@@ -143,9 +142,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Password must contain uppercase, lowercase, and a number' });
       }
       
-      // Hash and update password
+      // Hash and update password, mark as no longer requiring change
       const hashedPassword = await bcrypt.hash(newPassword, 10);
-      await storage.updateUserPassword(user.id, hashedPassword);
+      await storage.updateUserPassword(user.id, hashedPassword, false);
       
       res.json({ message: 'Password updated successfully' });
     } catch (error) {

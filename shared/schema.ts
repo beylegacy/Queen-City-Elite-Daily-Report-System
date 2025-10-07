@@ -73,10 +73,11 @@ export const emailSettings = pgTable("email_settings", {
 
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  email: text("email").notNull().unique(),
+  username: text("username").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
-  role: text("role").notNull(), // "manager" or "agent"
-  name: text("name").notNull(),
+  fullName: text("full_name").notNull(),
+  role: text("role").notNull(), // "admin", "manager", "agent"
+  requiresPasswordChange: boolean("requires_password_change").default(true),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
