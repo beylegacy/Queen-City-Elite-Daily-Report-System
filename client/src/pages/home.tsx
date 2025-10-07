@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PropertySelector from "@/components/property-selector";
@@ -9,7 +10,7 @@ import PackageAudit from "@/components/package-audit";
 import DailyDuties from "@/components/daily-duties";
 import ShiftNotes from "@/components/shift-notes";
 import ReportsExport from "@/components/reports-export";
-import { Clock, Zap } from "lucide-react";
+import { Clock, Zap, LogIn } from "lucide-react";
 import type { Property, DailyReport } from "@shared/schema";
 
 export default function Home() {
@@ -62,23 +63,36 @@ export default function Home() {
               </div>
               <p className="text-blue-100 mt-2 text-sm lg:text-base">Queen City Elite LLC</p>
             </div>
-            <div className="text-right">
-              <div className="bg-blue-500/20 px-4 py-2 rounded-lg">
-                <div className="text-sm font-medium" data-testid="current-date">
-                  {currentTime.toLocaleDateString('en-US', { 
-                    weekday: 'long',
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  })}
-                </div>
-                <div className="text-xs text-blue-200 flex items-center gap-1" data-testid="current-time">
-                  <Clock className="w-3 h-3" />
-                  {currentTime.toLocaleTimeString('en-US', { 
-                    hour: '2-digit', 
-                    minute: '2-digit',
-                    hour12: true 
-                  })}
+            <div className="flex items-center gap-4">
+              <Link href="/login">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="bg-white/10 hover:bg-white/20 text-white border-white/30 min-h-[44px] touch-manipulation"
+                  data-testid="button-manager-login"
+                >
+                  <LogIn className="w-4 h-4 mr-2" />
+                  Manager Login
+                </Button>
+              </Link>
+              <div className="text-right">
+                <div className="bg-blue-500/20 px-4 py-2 rounded-lg">
+                  <div className="text-sm font-medium" data-testid="current-date">
+                    {currentTime.toLocaleDateString('en-US', { 
+                      weekday: 'long',
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric' 
+                    })}
+                  </div>
+                  <div className="text-xs text-blue-200 flex items-center gap-1" data-testid="current-time">
+                    <Clock className="w-3 h-3" />
+                    {currentTime.toLocaleTimeString('en-US', { 
+                      hour: '2-digit', 
+                      minute: '2-digit',
+                      hour12: true 
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
