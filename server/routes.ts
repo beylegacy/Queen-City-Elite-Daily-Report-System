@@ -3,6 +3,9 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import nodemailer from "nodemailer";
 import PDFDocument from "pdfkit";
+import bcrypt from "bcrypt";
+import passport from "passport";
+import { Strategy as LocalStrategy } from "passport-local";
 import { z } from "zod";
 import { 
   insertPropertySchema,
@@ -14,7 +17,141 @@ import {
   insertEmailSettingsSchema
 } from "@shared/schema";
 
+// Configure Passport Local Strategy
+passport.use(new LocalStrategy(
+  { usernameField: 'email' },
+  async (email, password, done) => {
+    try {
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return done(null, false, { message: 'Invalid email or password' });
+      }
+      
+      const isValidPassword = await bcrypt.compare(password, user.passwordHash);
+      if (!isValidPassword) {
+        return done(null, false, { message: 'Invalid email or password' });
+      }
+      
+      return done(null, user);
+    } catch (error) {
+      return done(error);
+    }
+  }
+));
+
+passport.serializeUser((user: any, done) => {
+  done(null, user.id);
+});
+
+passport.deserializeUser(async (id: string, done) => {
+  try {
+    const user = await storage.getUserById(id);
+    done(null, user);
+  } catch (error) {
+    done(error);
+  }
+});
+
 export async function registerRoutes(app: Express): Promise<Server> {
+  
+  // Initialize Passport
+  app.use(passport.initialize());
+  app.use(passport.session());
+  
+  // Authentication Routes
+  app.post("/api/auth/login", (req, res, next) => {
+    passport.authenticate('local', (err: any, user: any, info: any) => {
+      if (err) {
+        return res.status(500).json({ message: 'Authentication error' });
+      }
+      if (!user) {
+        return res.status(401).json({ message: info?.message || 'Invalid credentials' });
+      }
+      
+      req.logIn(user, (err) => {
+        if (err) {
+          return res.status(500).json({ message: 'Login error' });
+        }
+        
+        // Set cookie maxAge based on rememberMe
+        if (req.body.rememberMe && req.session) {
+          (req.session as any).cookie.maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
+        }
+        
+        res.json({
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          propertyIds: user.propertyIds
+        });
+      });
+    })(req, res, next);
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    req.logout((err) => {
+      if (err) {
+        return res.status(500).json({ message: 'Logout error' });
+      }
+      if (req.session) {
+        (req.session as any).destroy((err: any) => {
+          if (err) {
+            return res.status(500).json({ message: 'Session destruction error' });
+          }
+          res.json({ message: 'Logged out successfully' });
+        });
+      } else {
+        res.json({ message: 'Logged out successfully' });
+      }
+    });
+  });
+
+  app.get("/api/auth/me", (req, res) => {
+    if (req.isAuthenticated()) {
+      const user = req.user as any;
+      res.json({
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        propertyIds: user.propertyIds
+      });
+    } else {
+      res.status(401).json({ message: 'Not authenticated' });
+    }
+  });
+
+  app.post("/api/auth/change-password", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: 'Not authenticated' });
+    }
+    
+    try {
+      const { currentPassword, newPassword } = req.body;
+      const user = req.user as any;
+      
+      // Validate current password
+      const isValid = await bcrypt.compare(currentPassword, user.passwordHash);
+      if (!isValid) {
+        return res.status(400).json({ message: 'Current password is incorrect' });
+      }
+      
+      // Validate new password (min 10 chars, mixed case, digit)
+      if (newPassword.length < 10) {
+        return res.status(400).json({ message: 'Password must be at least 10 characters' });
+      }
+      if (!/[a-z]/.test(newPassword) || !/[A-Z]/.test(newPassword) || !/\d/.test(newPassword)) {
+        return res.status(400).json({ message: 'Password must contain uppercase, lowercase, and a number' });
+      }
+      
+      // Hash and update password
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      await storage.updateUserPassword(user.id, hashedPassword);
+      
+      res.json({ message: 'Password updated successfully' });
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to update password' });
+    }
+  });
   
   // Properties
   app.get("/api/properties", async (_req, res) => {

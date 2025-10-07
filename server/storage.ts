@@ -13,7 +13,9 @@ import {
   type InsertShiftNotes,
   type EmailSettings,
   type InsertEmailSettings,
-  type ReportWithData
+  type ReportWithData,
+  type User,
+  type InsertUser
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -54,6 +56,12 @@ export interface IStorage {
   // Email Settings
   getEmailSettings(propertyId: string): Promise<EmailSettings | undefined>;
   upsertEmailSettings(settings: InsertEmailSettings): Promise<EmailSettings>;
+  
+  // Users
+  getUserById(id: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+  updateUserPassword(id: string, password: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -64,6 +72,7 @@ export class MemStorage implements IStorage {
   private dailyDuties: Map<string, DailyDuty> = new Map();
   private shiftNotes: Map<string, ShiftNotes> = new Map();
   private emailSettings: Map<string, EmailSettings> = new Map();
+  private users: Map<string, User> = new Map();
 
   constructor() {
     this.initializeDefaultData();
@@ -311,6 +320,34 @@ export class MemStorage implements IStorage {
       };
       this.emailSettings.set(id, settings);
       return settings;
+    }
+  }
+
+  // Users
+  async getUserById(id: string): Promise<User | undefined> {
+    return this.users.get(id);
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(u => u.email === email);
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const id = randomUUID();
+    const user: User = { 
+      ...insertUser, 
+      id,
+      createdAt: new Date()
+    };
+    this.users.set(id, user);
+    return user;
+  }
+
+  async updateUserPassword(id: string, passwordHash: string): Promise<void> {
+    const user = this.users.get(id);
+    if (user) {
+      user.passwordHash = passwordHash;
+      this.users.set(id, user);
     }
   }
 }
