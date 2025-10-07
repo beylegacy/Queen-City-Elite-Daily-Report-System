@@ -1,47 +1,44 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import { LogIn, Lock, Mail } from "lucide-react";
+import { useAuth } from "@/contexts/auth-context";
+import { LogIn, Lock, User } from "lucide-react";
 
 export default function Login() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [email, setEmail] = useState("");
+  const { login, user } = useAuth();
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const loginMutation = useMutation({
-    mutationFn: async (credentials: { email: string; password: string; rememberMe: boolean }) => {
-      const response = await apiRequest("POST", "/api/auth/login", credentials);
-      return response.json();
-    },
-    onSuccess: (data) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    
+    try {
+      await login(username, password, rememberMe);
       toast({
         title: "Login Successful",
-        description: `Welcome back, ${data.email}`,
+        description: `Welcome back!`,
       });
       // Redirect to manager dashboard
       setLocation("/manager");
-    },
-    onError: (error: any) => {
+    } catch (error: any) {
       toast({
         title: "Login Failed",
-        description: error.message || "Invalid email or password",
+        description: error.message || "Invalid username or password",
         variant: "destructive",
       });
-    },
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    loginMutation.mutate({ email, password, rememberMe });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -61,18 +58,18 @@ export default function Login() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="username">Username</Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="manager@queencityelite.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  id="username"
+                  type="text"
+                  placeholder="Enter your username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   className="pl-10 min-h-[44px]"
                   required
-                  data-testid="input-email"
+                  data-testid="input-username"
                 />
               </div>
             </div>
@@ -112,10 +109,10 @@ export default function Login() {
             <Button
               type="submit"
               className="w-full bg-gradient-to-r from-blue-600 to-slate-700 hover:from-blue-700 hover:to-slate-800 min-h-[44px] touch-manipulation"
-              disabled={loginMutation.isPending}
+              disabled={isLoading}
               data-testid="button-login"
             >
-              {loginMutation.isPending ? (
+              {isLoading ? (
                 "Signing in..."
               ) : (
                 <>
