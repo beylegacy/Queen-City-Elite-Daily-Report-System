@@ -51,9 +51,21 @@ This is a comprehensive front desk management system designed specifically for Q
   - Robin Saunders (rsaunders) - manager role
   - Katrina Turner (kturner) - manager role
 - **Default Password**: "Welcome2024!" for all initial accounts (requires immediate change on first login)
-- **Hybrid Storage**: User authentication queries PostgreSQL database via Drizzle ORM while other data uses in-memory storage
 - **API Endpoints**: POST /api/auth/login, POST /api/auth/logout, GET /api/auth/me, POST /api/auth/change-password
 - **Frontend Auth Context**: React context provider managing authentication state, user session, and password change flows
+
+### Package Form Simplification (October 9, 2025)
+- **Minimal Required Fields**: Only room/unit number is required when adding packages - all other fields are optional
+- **Optional Package Fields**: Resident name, storage location, received time, carrier, tracking number, package type, and notes can be left blank
+- **Flexible Data Entry**: Agents can quickly add packages with minimal information and update details later as needed
+- **Form Validation**: Updated Zod schema to make all fields except room number optional while maintaining data integrity
+
+### Database Migration and Performance Fix (October 9, 2025)
+- **Full PostgreSQL Storage**: Migrated from in-memory storage to PostgreSQL database for complete data persistence
+- **Driver Switch**: Replaced neon-http (Data API) with standard pg driver (node-postgres) to fix null rows bug
+- **Data Persistence**: All daily reports, packages, check-ins, duties, and notes now persist across page refreshes and server restarts
+- **Reliable Queries**: Switched to connection pool-based queries with SSL support for production environment
+- **Database Schema**: Updated packageAudits table to support nullable fields (residentName, storageLocation, receivedTime)
 
 ## User Preferences
 
@@ -77,7 +89,7 @@ Preferred communication style: Simple, everyday language.
 
 ### Data Storage Solutions
 - **Database**: PostgreSQL with Drizzle ORM for type-safe database operations
-- **Connection**: Neon Database serverless PostgreSQL for scalable cloud hosting
+- **Connection**: Neon Database serverless PostgreSQL via standard pg driver (node-postgres) with connection pooling
 - **Schema Management**: Drizzle Kit for migrations and database schema evolution
 - **Data Models**: Comprehensive schema covering:
   - **Properties**: Name, address, active status
