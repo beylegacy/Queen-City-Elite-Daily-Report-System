@@ -74,6 +74,12 @@ This is a comprehensive front desk management system designed specifically for Q
 - **Smart Button**: Button changes from "Create Report" to "Use Existing Report" when report exists
 - **No Overwrites**: Clicking the button confirms report is ready without updating agent information
 - **Shared Reports**: All shifts can add their own packages, check-ins, duties, and notes to the same daily report while preserving the original creator's information
+- **Shift Time Dropdown**: Changed from text input to dropdown menu with 5 predefined shift options:
+  - 7:00 am to 3:00 pm
+  - 3:00 pm to 11:00 pm
+  - 11:00 pm to 7:00 am
+  - 7:00 am to 7:00 pm
+  - 7:00 pm to 7:00 am
 
 ## User Preferences
 

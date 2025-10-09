@@ -293,15 +293,25 @@ export default function PropertySelector({
             <Clock className="w-4 h-4 inline mr-2 text-violet-500" />
             Shift Time {currentReport && "(Original)"}
           </Label>
-          <Input
-            type="text"
-            placeholder="e.g., 3:20pm-11:00pm"
-            value={shiftTime}
-            onChange={(e) => onShiftTimeChange(e.target.value)}
+          <Select 
+            value={shiftTime} 
+            onValueChange={onShiftTimeChange}
             disabled={!!currentReport}
-            className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-            data-testid="input-shift-time"
-          />
+          >
+            <SelectTrigger 
+              className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed" 
+              data-testid="select-shift-time"
+            >
+              <SelectValue placeholder="Select shift time" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="7:00 am to 3:00 pm">7:00 am to 3:00 pm</SelectItem>
+              <SelectItem value="3:00 pm to 11:00 pm">3:00 pm to 11:00 pm</SelectItem>
+              <SelectItem value="11:00 pm to 7:00 am">11:00 pm to 7:00 am</SelectItem>
+              <SelectItem value="7:00 am to 7:00 pm">7:00 am to 7:00 pm</SelectItem>
+              <SelectItem value="7:00 pm to 7:00 am">7:00 pm to 7:00 am</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
       
