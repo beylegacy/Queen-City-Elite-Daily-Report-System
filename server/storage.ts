@@ -15,9 +15,12 @@ import {
   type InsertEmailSettings,
   type ReportWithData,
   type User,
-  type InsertUser
+  type InsertUser,
+  users
 } from "@shared/schema";
 import { randomUUID } from "crypto";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   // Properties
@@ -72,7 +75,6 @@ export class MemStorage implements IStorage {
   private dailyDuties: Map<string, DailyDuty> = new Map();
   private shiftNotes: Map<string, ShiftNotes> = new Map();
   private emailSettings: Map<string, EmailSettings> = new Map();
-  private users: Map<string, User> = new Map();
 
   constructor() {
     this.initializeDefaultData();
@@ -323,33 +325,26 @@ export class MemStorage implements IStorage {
     }
   }
 
-  // Users
+  // Users - Using database
   async getUserById(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+    const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+    return result[0];
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(u => u.username === username);
+    const result = await db.select().from(users).where(eq(users.username, username)).limit(1);
+    return result[0];
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { 
-      ...insertUser, 
-      id,
-      createdAt: new Date()
-    };
-    this.users.set(id, user);
-    return user;
+    const result = await db.insert(users).values(insertUser).returning();
+    return result[0];
   }
 
   async updateUserPassword(id: string, passwordHash: string, requiresPasswordChange: boolean = false): Promise<void> {
-    const user = this.users.get(id);
-    if (user) {
-      user.passwordHash = passwordHash;
-      user.requiresPasswordChange = requiresPasswordChange;
-      this.users.set(id, user);
-    }
+    await db.update(users)
+      .set({ passwordHash, requiresPasswordChange })
+      .where(eq(users.id, id));
   }
 }
 

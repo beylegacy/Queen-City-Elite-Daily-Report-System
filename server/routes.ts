@@ -61,15 +61,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/login", (req, res, next) => {
     passport.authenticate('local', (err: any, user: any, info: any) => {
       if (err) {
-        return res.status(500).json({ message: 'Authentication error' });
+        console.error('Authentication error:', err);
+        return res.status(500).json({ message: 'Authentication error', error: err.message });
       }
       if (!user) {
+        console.log('Login failed:', info?.message);
         return res.status(401).json({ message: info?.message || 'Invalid credentials' });
       }
       
       req.logIn(user, (err) => {
         if (err) {
-          return res.status(500).json({ message: 'Login error' });
+          console.error('Login error:', err);
+          return res.status(500).json({ message: 'Login error', error: err.message });
         }
         
         // Set cookie maxAge based on rememberMe
@@ -79,9 +82,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         res.json({
           id: user.id,
-          email: user.email,
+          username: user.username,
+          fullName: user.fullName,
           role: user.role,
-          propertyIds: user.propertyIds
+          requiresPasswordChange: user.requiresPasswordChange
         });
       });
     })(req, res, next);
@@ -110,9 +114,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = req.user as any;
       res.json({
         id: user.id,
-        email: user.email,
+        username: user.username,
+        fullName: user.fullName,
         role: user.role,
-        propertyIds: user.propertyIds
+        requiresPasswordChange: user.requiresPasswordChange
       });
     } else {
       res.status(401).json({ message: 'Not authenticated' });
