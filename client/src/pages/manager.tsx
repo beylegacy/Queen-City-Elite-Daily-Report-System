@@ -34,7 +34,7 @@ export default function Manager() {
 
   // Resident form state
   const [residentForm, setResidentForm] = useState({
-    apartment: "",
+    apartmentNumber: "",
     residentName: "",
     email: "",
     phone: "",
@@ -42,7 +42,8 @@ export default function Manager() {
 
   // Template form state
   const [templateForm, setTemplateForm] = useState({
-    description: "",
+    task: "",
+    shift: "1st",
   });
 
   useEffect(() => {
@@ -216,7 +217,7 @@ export default function Manager() {
 
   const resetResidentForm = () => {
     setResidentForm({
-      apartment: "",
+      apartmentNumber: "",
       residentName: "",
       email: "",
       phone: "",
@@ -225,14 +226,15 @@ export default function Manager() {
 
   const resetTemplateForm = () => {
     setTemplateForm({
-      description: "",
+      task: "",
+      shift: "1st",
     });
   };
 
   const handleEditResident = (resident: Resident) => {
     setEditingResident(resident);
     setResidentForm({
-      apartment: resident.apartment,
+      apartmentNumber: resident.apartmentNumber,
       residentName: resident.residentName,
       email: resident.email || "",
       phone: resident.phone || "",
@@ -242,7 +244,8 @@ export default function Manager() {
   const handleEditTemplate = (template: DutyTemplate) => {
     setEditingTemplate(template);
     setTemplateForm({
-      description: template.description,
+      task: template.task,
+      shift: template.shift,
     });
   };
 
@@ -256,7 +259,7 @@ export default function Manager() {
       return;
     }
 
-    if (!residentForm.apartment || !residentForm.residentName) {
+    if (!residentForm.apartmentNumber || !residentForm.residentName) {
       toast({
         title: "Error",
         description: "Apartment and resident name are required",
@@ -282,7 +285,7 @@ export default function Manager() {
       return;
     }
 
-    if (!templateForm.description) {
+    if (!templateForm.task) {
       toast({
         title: "Error",
         description: "Task description is required",
@@ -502,11 +505,11 @@ export default function Manager() {
                         </DialogHeader>
                         <div className="space-y-4 pt-4">
                           <div>
-                            <Label htmlFor="apartment">Apartment / Unit Number *</Label>
+                            <Label htmlFor="apartmentNumber">Apartment / Unit Number *</Label>
                             <Input
-                              id="apartment"
-                              value={residentForm.apartment}
-                              onChange={(e) => setResidentForm({ ...residentForm, apartment: e.target.value })}
+                              id="apartmentNumber"
+                              value={residentForm.apartmentNumber}
+                              onChange={(e) => setResidentForm({ ...residentForm, apartmentNumber: e.target.value })}
                               placeholder="304"
                               data-testid="input-apartment"
                             />
@@ -575,7 +578,7 @@ export default function Manager() {
                         <TableBody>
                           {residents.map((resident) => (
                             <TableRow key={resident.id}>
-                              <TableCell className="font-medium">{resident.apartment}</TableCell>
+                              <TableCell className="font-medium">{resident.apartmentNumber}</TableCell>
                               <TableCell>{resident.residentName}</TableCell>
                               <TableCell>{resident.email || "-"}</TableCell>
                               <TableCell>{resident.phone || "-"}</TableCell>
@@ -599,11 +602,11 @@ export default function Manager() {
                                       </DialogHeader>
                                       <div className="space-y-4 pt-4">
                                         <div>
-                                          <Label htmlFor="edit-apartment">Apartment / Unit Number *</Label>
+                                          <Label htmlFor="edit-apartmentNumber">Apartment / Unit Number *</Label>
                                           <Input
-                                            id="edit-apartment"
-                                            value={residentForm.apartment}
-                                            onChange={(e) => setResidentForm({ ...residentForm, apartment: e.target.value })}
+                                            id="edit-apartmentNumber"
+                                            value={residentForm.apartmentNumber}
+                                            onChange={(e) => setResidentForm({ ...residentForm, apartmentNumber: e.target.value })}
                                             placeholder="304"
                                             data-testid="input-edit-apartment"
                                           />
@@ -692,11 +695,11 @@ export default function Manager() {
                         </DialogHeader>
                         <div className="space-y-4 pt-4">
                           <div>
-                            <Label htmlFor="description">Task Description *</Label>
+                            <Label htmlFor="task">Task Description *</Label>
                             <Input
-                              id="description"
-                              value={templateForm.description}
-                              onChange={(e) => setTemplateForm({ ...templateForm, description: e.target.value })}
+                              id="task"
+                              value={templateForm.task}
+                              onChange={(e) => setTemplateForm({ ...templateForm, task: e.target.value })}
                               placeholder="Check lobby cleanliness"
                               data-testid="input-task-description"
                             />
@@ -731,7 +734,7 @@ export default function Manager() {
                         <TableBody>
                           {templates.map((template) => (
                             <TableRow key={template.id}>
-                              <TableCell>{template.description}</TableCell>
+                              <TableCell>{template.task}</TableCell>
                               <TableCell className="text-right">
                                 <div className="flex justify-end gap-2">
                                   <Dialog open={editingTemplate?.id === template.id} onOpenChange={(open) => !open && setEditingTemplate(null)}>
@@ -752,11 +755,11 @@ export default function Manager() {
                                       </DialogHeader>
                                       <div className="space-y-4 pt-4">
                                         <div>
-                                          <Label htmlFor="edit-description">Task Description *</Label>
+                                          <Label htmlFor="edit-task">Task Description *</Label>
                                           <Input
-                                            id="edit-description"
-                                            value={templateForm.description}
-                                            onChange={(e) => setTemplateForm({ ...templateForm, description: e.target.value })}
+                                            id="edit-task"
+                                            value={templateForm.task}
+                                            onChange={(e) => setTemplateForm({ ...templateForm, task: e.target.value })}
                                             placeholder="Check lobby cleanliness"
                                             data-testid="input-edit-task-description"
                                           />

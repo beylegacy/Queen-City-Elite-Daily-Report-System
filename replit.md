@@ -81,6 +81,36 @@ This is a comprehensive front desk management system designed specifically for Q
   - 7:00 am to 7:00 pm
   - 7:00 pm to 7:00 am
 
+### Manager Dashboard - Resident Directory (October 9, 2025)
+- **Property-Based Resident Directory**: Managers can now maintain a complete directory of residents for each property
+- **Resident Information**: Track apartment number, resident name, email, and phone for each resident
+- **Auto-Fill Package Entry**: When front desk agents enter an apartment number in the package form, the system automatically looks up and fills in the resident's name
+- **Smart Lookup Indicator**: Package form displays "✓ Resident Found" when a match is found, with instant name population
+- **Fallback Data Entry**: If resident not in directory (e.g., new move-in), agents can still manually enter the name
+- **Manager CRUD Interface**: Full create, read, update, delete functionality in manager dashboard for resident records
+- **Database Schema**: New residents table with fields: id, propertyId, apartmentNumber, residentName, email, phone, createdAt
+
+### Manager Dashboard - Daily Task Templates (October 9, 2025)
+- **Customizable Task Templates**: Managers can pre-define daily duty tasks per property for consistent agent workflows
+- **Property-Specific Templates**: Each property has its own set of task templates independent of other properties
+- **Shift Assignment**: Tasks can be assigned to specific shifts (1st, 2nd, 3rd) for shift-specific responsibilities
+- **Display Ordering**: Tasks include optional display order for consistent presentation to front desk agents
+- **Template Management**: Full CRUD interface in manager dashboard for adding, editing, and removing task templates
+- **Database Schema**: New dutyTemplates table with fields: id, propertyId, shift, task, displayOrder
+
+### API Endpoint Updates (October 9, 2025)
+- **Resident Management APIs**:
+  - GET /api/residents/:propertyId - Retrieve all residents for a property
+  - GET /api/residents/lookup/:propertyId/:apartmentNumber - Lookup specific resident by apartment number
+  - POST /api/residents - Create new resident record
+  - PATCH /api/residents/:id - Update existing resident
+  - DELETE /api/residents/:id - Remove resident from directory
+- **Duty Template APIs**:
+  - GET /api/duty-templates/:propertyId - Retrieve all task templates for a property
+  - POST /api/duty-templates - Create new task template
+  - PATCH /api/duty-templates/:id - Update existing template
+  - DELETE /api/duty-templates/:id - Remove task template
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
@@ -113,6 +143,9 @@ Preferred communication style: Simple, everyday language.
   - **Daily Duties**: Task description, completion status, timestamp
   - **Shift Notes**: Content, shift, update timestamp
   - **Email Settings**: Property-specific recipients, send time, format preferences (each property has its own email list)
+  - **Residents**: Property-based directory with apartment number, resident name, email, phone (enables auto-fill in package form)
+  - **Duty Templates**: Property-specific task templates with shift assignment and display order (for consistent daily workflows)
+  - **Users**: Manager/admin accounts with username, password hash, full name, role, password change requirements
 
 ### Authentication and Authorization
 - **Session Management**: Connect-pg-simple for PostgreSQL-backed session storage

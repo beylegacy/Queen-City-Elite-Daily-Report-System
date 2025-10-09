@@ -627,7 +627,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Resident Routes
-  app.get("/api/residents/property/:propertyId", async (req, res) => {
+  app.get("/api/residents/:propertyId", async (req, res) => {
     try {
       const residents = await storage.getResidentsByProperty(req.params.propertyId);
       res.json(residents);
@@ -658,7 +658,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/residents/:id", async (req, res) => {
+  app.patch("/api/residents/:id", async (req, res) => {
     try {
       const validatedData = insertResidentSchema.partial().parse(req.body);
       const resident = await storage.updateResident(req.params.id, validatedData);
@@ -681,7 +681,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Duty Template Routes
-  app.get("/api/duty-templates/property/:propertyId", async (req, res) => {
+  app.get("/api/duty-templates/:propertyId", async (req, res) => {
     try {
       const templates = await storage.getDutyTemplatesByProperty(req.params.propertyId);
       res.json(templates);
@@ -700,7 +700,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/duty-templates/:id", async (req, res) => {
+  app.patch("/api/duty-templates/:id", async (req, res) => {
     try {
       const validatedData = insertDutyTemplateSchema.partial().parse(req.body);
       const template = await storage.updateDutyTemplate(req.params.id, validatedData);

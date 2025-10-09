@@ -15,21 +15,40 @@ async function seedUsers() {
     { username: 'kturner', fullName: 'Katrina Turner', role: 'manager' as const },
   ];
 
-  console.log('Resetting manager account passwords to Welcome2024!...');
+  console.log('Seeding manager accounts...');
 
   for (const account of managerAccounts) {
-    await db
-      .update(users)
-      .set({
+    // Check if user exists
+    const existingUser = await db
+      .select()
+      .from(users)
+      .where(eq(users.username, account.username))
+      .limit(1);
+    
+    if (existingUser.length > 0) {
+      // Update existing user
+      await db
+        .update(users)
+        .set({
+          passwordHash,
+          requiresPasswordChange: true,
+        })
+        .where(eq(users.username, account.username));
+      console.log(`✓ Reset password for ${account.username} (${account.fullName})`);
+    } else {
+      // Insert new user
+      await db.insert(users).values({
+        username: account.username,
+        fullName: account.fullName,
+        role: account.role,
         passwordHash,
         requiresPasswordChange: true,
-      })
-      .where(eq(users.username, account.username));
-    
-    console.log(`✓ Reset password for ${account.username} (${account.fullName})`);
+      });
+      console.log(`✓ Created user ${account.username} (${account.fullName})`);
+    }
   }
 
-  console.log('\nAll manager passwords have been reset to: Welcome2024!');
+  console.log('\nAll manager accounts ready with password: Welcome2024!');
   console.log('Users must change their password on first login.');
   process.exit(0);
 }
