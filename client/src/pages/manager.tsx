@@ -1,13 +1,19 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/auth-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, Lock, Settings, User } from "lucide-react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { LogOut, Lock, Settings, User, Plus, Pencil, Trash2 } from "lucide-react";
+import type { Property, Resident, DutyTemplate } from "@shared/schema";
 
 export default function Manager() {
   const [, setLocation] = useLocation();
@@ -18,6 +24,26 @@ export default function Manager() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  
+  // Management features state
+  const [selectedProperty, setSelectedProperty] = useState<string>("");
+  const [isAddingResident, setIsAddingResident] = useState(false);
+  const [editingResident, setEditingResident] = useState<Resident | null>(null);
+  const [isAddingTemplate, setIsAddingTemplate] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<DutyTemplate | null>(null);
+
+  // Resident form state
+  const [residentForm, setResidentForm] = useState({
+    apartment: "",
+    residentName: "",
+    email: "",
+    phone: "",
+  });
+
+  // Template form state
+  const [templateForm, setTemplateForm] = useState({
+    description: "",
+  });
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -30,6 +56,247 @@ export default function Manager() {
       setShowPasswordDialog(true);
     }
   }, [user]);
+
+  // Fetch properties
+  const { data: properties = [] } = useQuery<Property[]>({
+    queryKey: ['/api/properties'],
+  });
+
+  // Fetch residents for selected property
+  const { data: residents = [], isLoading: loadingResidents } = useQuery<Resident[]>({
+    queryKey: ['/api/residents', selectedProperty],
+    enabled: !!selectedProperty,
+  });
+
+  // Fetch duty templates for selected property
+  const { data: templates = [], isLoading: loadingTemplates } = useQuery<DutyTemplate[]>({
+    queryKey: ['/api/duty-templates', selectedProperty],
+    enabled: !!selectedProperty,
+  });
+
+  // Create resident mutation
+  const createResidentMutation = useMutation({
+    mutationFn: async (data: typeof residentForm & { propertyId: string }) => {
+      const response = await apiRequest("POST", "/api/residents", data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/residents', selectedProperty] });
+      setIsAddingResident(false);
+      resetResidentForm();
+      toast({
+        title: "Success",
+        description: "Resident added successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to add resident",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update resident mutation
+  const updateResidentMutation = useMutation({
+    mutationFn: async (data: typeof residentForm & { id: string }) => {
+      const response = await apiRequest("PATCH", `/api/residents/${data.id}`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/residents', selectedProperty] });
+      setEditingResident(null);
+      resetResidentForm();
+      toast({
+        title: "Success",
+        description: "Resident updated successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update resident",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete resident mutation
+  const deleteResidentMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiRequest("DELETE", `/api/residents/${id}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/residents', selectedProperty] });
+      toast({
+        title: "Success",
+        description: "Resident deleted successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete resident",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Create template mutation
+  const createTemplateMutation = useMutation({
+    mutationFn: async (data: typeof templateForm & { propertyId: string }) => {
+      const response = await apiRequest("POST", "/api/duty-templates", data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/duty-templates', selectedProperty] });
+      setIsAddingTemplate(false);
+      resetTemplateForm();
+      toast({
+        title: "Success",
+        description: "Task template added successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to add task template",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update template mutation
+  const updateTemplateMutation = useMutation({
+    mutationFn: async (data: typeof templateForm & { id: string }) => {
+      const response = await apiRequest("PATCH", `/api/duty-templates/${data.id}`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/duty-templates', selectedProperty] });
+      setEditingTemplate(null);
+      resetTemplateForm();
+      toast({
+        title: "Success",
+        description: "Task template updated successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update task template",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete template mutation
+  const deleteTemplateMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiRequest("DELETE", `/api/duty-templates/${id}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/duty-templates', selectedProperty] });
+      toast({
+        title: "Success",
+        description: "Task template deleted successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete task template",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const resetResidentForm = () => {
+    setResidentForm({
+      apartment: "",
+      residentName: "",
+      email: "",
+      phone: "",
+    });
+  };
+
+  const resetTemplateForm = () => {
+    setTemplateForm({
+      description: "",
+    });
+  };
+
+  const handleEditResident = (resident: Resident) => {
+    setEditingResident(resident);
+    setResidentForm({
+      apartment: resident.apartment,
+      residentName: resident.residentName,
+      email: resident.email || "",
+      phone: resident.phone || "",
+    });
+  };
+
+  const handleEditTemplate = (template: DutyTemplate) => {
+    setEditingTemplate(template);
+    setTemplateForm({
+      description: template.description,
+    });
+  };
+
+  const handleSaveResident = () => {
+    if (!selectedProperty) {
+      toast({
+        title: "Error",
+        description: "Please select a property first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!residentForm.apartment || !residentForm.residentName) {
+      toast({
+        title: "Error",
+        description: "Apartment and resident name are required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (editingResident) {
+      updateResidentMutation.mutate({ ...residentForm, id: editingResident.id });
+    } else {
+      createResidentMutation.mutate({ ...residentForm, propertyId: selectedProperty });
+    }
+  };
+
+  const handleSaveTemplate = () => {
+    if (!selectedProperty) {
+      toast({
+        title: "Error",
+        description: "Please select a property first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!templateForm.description) {
+      toast({
+        title: "Error",
+        description: "Task description is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (editingTemplate) {
+      updateTemplateMutation.mutate({ ...templateForm, id: editingTemplate.id });
+    } else {
+      createTemplateMutation.mutate({ ...templateForm, propertyId: selectedProperty });
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -179,20 +446,353 @@ export default function Manager() {
           </Card>
         </div>
 
-        <Card>
+        <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Settings className="w-5 h-5" />
-              Management Features
-            </CardTitle>
-            <CardDescription>
-              Configure system settings and templates
-            </CardDescription>
+            <CardTitle>Select Property</CardTitle>
+            <CardDescription>Choose a property to manage residents and task templates</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-slate-600">Configuration features coming soon...</p>
+            <Select value={selectedProperty} onValueChange={setSelectedProperty}>
+              <SelectTrigger data-testid="select-property">
+                <SelectValue placeholder="Select a property" />
+              </SelectTrigger>
+              <SelectContent>
+                {properties.map((property) => (
+                  <SelectItem key={property.id} value={property.id}>
+                    {property.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </CardContent>
         </Card>
+
+        {selectedProperty && (
+          <Tabs defaultValue="residents" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="residents" data-testid="tab-residents">
+                <Settings className="w-4 h-4 mr-2" />
+                Residents
+              </TabsTrigger>
+              <TabsTrigger value="templates" data-testid="tab-templates">
+                <Settings className="w-4 h-4 mr-2" />
+                Daily Task Templates
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="residents">
+              <Card>
+                <CardHeader>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <CardTitle>Resident Directory</CardTitle>
+                      <CardDescription>Manage resident information for auto-fill in package tracking</CardDescription>
+                    </div>
+                    <Dialog open={isAddingResident} onOpenChange={setIsAddingResident}>
+                      <DialogTrigger asChild>
+                        <Button onClick={() => resetResidentForm()} data-testid="button-add-resident">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Resident
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Add New Resident</DialogTitle>
+                          <DialogDescription>Enter resident information for package auto-fill</DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 pt-4">
+                          <div>
+                            <Label htmlFor="apartment">Apartment / Unit Number *</Label>
+                            <Input
+                              id="apartment"
+                              value={residentForm.apartment}
+                              onChange={(e) => setResidentForm({ ...residentForm, apartment: e.target.value })}
+                              placeholder="304"
+                              data-testid="input-apartment"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="residentName">Resident Name *</Label>
+                            <Input
+                              id="residentName"
+                              value={residentForm.residentName}
+                              onChange={(e) => setResidentForm({ ...residentForm, residentName: e.target.value })}
+                              placeholder="John Smith"
+                              data-testid="input-resident-name"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="email">Email (Optional)</Label>
+                            <Input
+                              id="email"
+                              type="email"
+                              value={residentForm.email}
+                              onChange={(e) => setResidentForm({ ...residentForm, email: e.target.value })}
+                              placeholder="john@example.com"
+                              data-testid="input-email"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="phone">Phone (Optional)</Label>
+                            <Input
+                              id="phone"
+                              value={residentForm.phone}
+                              onChange={(e) => setResidentForm({ ...residentForm, phone: e.target.value })}
+                              placeholder="704-555-0100"
+                              data-testid="input-phone"
+                            />
+                          </div>
+                          <div className="flex justify-end gap-2 pt-4">
+                            <Button variant="outline" onClick={() => setIsAddingResident(false)} data-testid="button-cancel-resident">
+                              Cancel
+                            </Button>
+                            <Button onClick={handleSaveResident} data-testid="button-save-resident">
+                              Add Resident
+                            </Button>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {loadingResidents ? (
+                    <div className="text-center py-8 text-gray-500">Loading residents...</div>
+                  ) : residents.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">No residents found. Add your first resident to enable auto-fill.</div>
+                  ) : (
+                    <div className="rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Apartment</TableHead>
+                            <TableHead>Resident Name</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Phone</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {residents.map((resident) => (
+                            <TableRow key={resident.id}>
+                              <TableCell className="font-medium">{resident.apartment}</TableCell>
+                              <TableCell>{resident.residentName}</TableCell>
+                              <TableCell>{resident.email || "-"}</TableCell>
+                              <TableCell>{resident.phone || "-"}</TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end gap-2">
+                                  <Dialog open={editingResident?.id === resident.id} onOpenChange={(open) => !open && setEditingResident(null)}>
+                                    <DialogTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleEditResident(resident)}
+                                        data-testid={`button-edit-resident-${resident.id}`}
+                                      >
+                                        <Pencil className="h-4 w-4" />
+                                      </Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                      <DialogHeader>
+                                        <DialogTitle>Edit Resident</DialogTitle>
+                                        <DialogDescription>Update resident information</DialogDescription>
+                                      </DialogHeader>
+                                      <div className="space-y-4 pt-4">
+                                        <div>
+                                          <Label htmlFor="edit-apartment">Apartment / Unit Number *</Label>
+                                          <Input
+                                            id="edit-apartment"
+                                            value={residentForm.apartment}
+                                            onChange={(e) => setResidentForm({ ...residentForm, apartment: e.target.value })}
+                                            placeholder="304"
+                                            data-testid="input-edit-apartment"
+                                          />
+                                        </div>
+                                        <div>
+                                          <Label htmlFor="edit-residentName">Resident Name *</Label>
+                                          <Input
+                                            id="edit-residentName"
+                                            value={residentForm.residentName}
+                                            onChange={(e) => setResidentForm({ ...residentForm, residentName: e.target.value })}
+                                            placeholder="John Smith"
+                                            data-testid="input-edit-resident-name"
+                                          />
+                                        </div>
+                                        <div>
+                                          <Label htmlFor="edit-email">Email (Optional)</Label>
+                                          <Input
+                                            id="edit-email"
+                                            type="email"
+                                            value={residentForm.email}
+                                            onChange={(e) => setResidentForm({ ...residentForm, email: e.target.value })}
+                                            placeholder="john@example.com"
+                                            data-testid="input-edit-email"
+                                          />
+                                        </div>
+                                        <div>
+                                          <Label htmlFor="edit-phone">Phone (Optional)</Label>
+                                          <Input
+                                            id="edit-phone"
+                                            value={residentForm.phone}
+                                            onChange={(e) => setResidentForm({ ...residentForm, phone: e.target.value })}
+                                            placeholder="704-555-0100"
+                                            data-testid="input-edit-phone"
+                                          />
+                                        </div>
+                                        <div className="flex justify-end gap-2 pt-4">
+                                          <Button variant="outline" onClick={() => setEditingResident(null)} data-testid="button-cancel-edit-resident">
+                                            Cancel
+                                          </Button>
+                                          <Button onClick={handleSaveResident} data-testid="button-update-resident">
+                                            Update Resident
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    </DialogContent>
+                                  </Dialog>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => deleteResidentMutation.mutate(resident.id)}
+                                    data-testid={`button-delete-resident-${resident.id}`}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-red-500" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="templates">
+              <Card>
+                <CardHeader>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <CardTitle>Daily Task Templates</CardTitle>
+                      <CardDescription>Pre-configured tasks that agents can load for their shift</CardDescription>
+                    </div>
+                    <Dialog open={isAddingTemplate} onOpenChange={setIsAddingTemplate}>
+                      <DialogTrigger asChild>
+                        <Button onClick={() => resetTemplateForm()} data-testid="button-add-template">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Task
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Add Task Template</DialogTitle>
+                          <DialogDescription>Create a recurring daily task for this property</DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 pt-4">
+                          <div>
+                            <Label htmlFor="description">Task Description *</Label>
+                            <Input
+                              id="description"
+                              value={templateForm.description}
+                              onChange={(e) => setTemplateForm({ ...templateForm, description: e.target.value })}
+                              placeholder="Check lobby cleanliness"
+                              data-testid="input-task-description"
+                            />
+                          </div>
+                          <div className="flex justify-end gap-2 pt-4">
+                            <Button variant="outline" onClick={() => setIsAddingTemplate(false)} data-testid="button-cancel-template">
+                              Cancel
+                            </Button>
+                            <Button onClick={handleSaveTemplate} data-testid="button-save-template">
+                              Add Task
+                            </Button>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {loadingTemplates ? (
+                    <div className="text-center py-8 text-gray-500">Loading task templates...</div>
+                  ) : templates.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">No task templates found. Add recurring tasks for agents to load.</div>
+                  ) : (
+                    <div className="rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Task Description</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {templates.map((template) => (
+                            <TableRow key={template.id}>
+                              <TableCell>{template.description}</TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end gap-2">
+                                  <Dialog open={editingTemplate?.id === template.id} onOpenChange={(open) => !open && setEditingTemplate(null)}>
+                                    <DialogTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleEditTemplate(template)}
+                                        data-testid={`button-edit-template-${template.id}`}
+                                      >
+                                        <Pencil className="h-4 w-4" />
+                                      </Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                      <DialogHeader>
+                                        <DialogTitle>Edit Task Template</DialogTitle>
+                                        <DialogDescription>Update task description</DialogDescription>
+                                      </DialogHeader>
+                                      <div className="space-y-4 pt-4">
+                                        <div>
+                                          <Label htmlFor="edit-description">Task Description *</Label>
+                                          <Input
+                                            id="edit-description"
+                                            value={templateForm.description}
+                                            onChange={(e) => setTemplateForm({ ...templateForm, description: e.target.value })}
+                                            placeholder="Check lobby cleanliness"
+                                            data-testid="input-edit-task-description"
+                                          />
+                                        </div>
+                                        <div className="flex justify-end gap-2 pt-4">
+                                          <Button variant="outline" onClick={() => setEditingTemplate(null)} data-testid="button-cancel-edit-template">
+                                            Cancel
+                                          </Button>
+                                          <Button onClick={handleSaveTemplate} data-testid="button-update-template">
+                                            Update Task
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    </DialogContent>
+                                  </Dialog>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => deleteTemplateMutation.mutate(template.id)}
+                                    data-testid={`button-delete-template-${template.id}`}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-red-500" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        )}
       </div>
 
       <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
