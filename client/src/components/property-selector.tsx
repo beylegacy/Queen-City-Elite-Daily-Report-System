@@ -128,10 +128,29 @@ export default function PropertySelector({
   };
 
   const handleCreateOrUpdateReport = () => {
-    if (!selectedProperty || !reportDate || !agentName) {
+    if (!selectedProperty || !reportDate) {
       toast({
         title: "Missing Information",
-        description: "Please fill in property, date, and agent name.",
+        description: "Please select property and date.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // If report already exists, just use it - don't update agent info
+    if (currentReport) {
+      toast({
+        title: "Report Ready",
+        description: `Using existing report. You can now add your shift data.`,
+      });
+      return;
+    }
+
+    // Creating new report - agent name is required
+    if (!agentName) {
+      toast({
+        title: "Missing Information",
+        description: "Please enter your name to create the report.",
         variant: "destructive",
       });
       return;
@@ -144,11 +163,7 @@ export default function PropertySelector({
       shiftTime,
     };
 
-    if (currentReport) {
-      updateReportMutation.mutate({ id: currentReport.id, data: reportData });
-    } else {
-      createReportMutation.mutate(reportData);
-    }
+    createReportMutation.mutate(reportData);
   };
 
   return (
@@ -260,14 +275,15 @@ export default function PropertySelector({
         <div>
           <Label className="block text-sm font-semibold text-slate-700 mb-2">
             <User className="w-4 h-4 inline mr-2 text-amber-500" />
-            Front Desk Agent
+            Front Desk Agent {currentReport && "(Report Created By)"}
           </Label>
           <Input
             type="text"
             placeholder="Enter agent name"
             value={agentName}
             onChange={(e) => onAgentNameChange(e.target.value)}
-            className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+            disabled={!!currentReport}
+            className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             data-testid="input-agent-name"
           />
         </div>
@@ -275,14 +291,15 @@ export default function PropertySelector({
         <div>
           <Label className="block text-sm font-semibold text-slate-700 mb-2">
             <Clock className="w-4 h-4 inline mr-2 text-violet-500" />
-            Shift Time
+            Shift Time {currentReport && "(Original)"}
           </Label>
           <Input
             type="text"
             placeholder="e.g., 3:20pm-11:00pm"
             value={shiftTime}
             onChange={(e) => onShiftTimeChange(e.target.value)}
-            className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+            disabled={!!currentReport}
+            className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             data-testid="input-shift-time"
           />
         </div>
@@ -291,11 +308,11 @@ export default function PropertySelector({
       <div className="mt-4 flex justify-end">
         <Button
           onClick={handleCreateOrUpdateReport}
-          disabled={createReportMutation.isPending || updateReportMutation.isPending}
+          disabled={createReportMutation.isPending}
           className="gradient-slate-blue text-white hover:opacity-90"
           data-testid="button-create-update-report"
         >
-          {currentReport ? "Update Report" : "Create Report"}
+          {currentReport ? "Use Existing Report" : "Create Report"}
         </Button>
       </div>
     </div>
