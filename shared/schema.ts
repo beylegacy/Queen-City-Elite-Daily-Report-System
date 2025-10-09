@@ -32,13 +32,13 @@ export const guestCheckins = pgTable("guest_checkins", {
 export const packageAudits = pgTable("package_audits", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   reportId: varchar("report_id").notNull(),
-  residentName: text("resident_name").notNull(),
+  residentName: text("resident_name"),
   roomNumber: text("room_number").notNull(),
-  storageLocation: text("storage_location").notNull(), // where in package room: "Shelf A1", "Bin 3", "Oversized Area", etc.
-  carrier: text("carrier"), // UPS, FedEx, USPS, Amazon, etc.
+  storageLocation: text("storage_location"),
+  carrier: text("carrier"),
   trackingNumber: text("tracking_number"),
-  packageType: text("package_type"), // box, envelope, oversized, etc.
-  receivedTime: text("received_time").notNull(),
+  packageType: text("package_type"),
+  receivedTime: text("received_time"),
   notes: text("notes"),
   shift: text("shift").notNull(),
   status: text("status").notNull().default("active"), // "active", "picked_up", "returned_to_sender"

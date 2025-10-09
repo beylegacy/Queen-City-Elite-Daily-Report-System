@@ -21,10 +21,7 @@ interface PackageAuditProps {
 }
 
 const packageFormSchema = insertPackageAuditSchema.extend({
-  residentName: z.string().min(1, "Resident name is required"),
   roomNumber: z.string().min(1, "Room number is required"),
-  storageLocation: z.string().min(1, "Storage location is required"),
-  receivedTime: z.string().min(1, "Received time is required"),
 });
 
 const carriers = ["UPS", "FedEx", "USPS", "Amazon", "DHL", "Other"];
@@ -180,9 +177,9 @@ export default function PackageAudit({ currentReport }: PackageAuditProps) {
                   name="residentName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Resident Name *</FormLabel>
+                      <FormLabel>Resident Name (Optional)</FormLabel>
                       <FormControl>
-                        <Input placeholder="John Smith" {...field} data-testid="input-resident-name" />
+                        <Input placeholder="John Smith" {...field} value={field.value || ""} data-testid="input-resident-name" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -208,8 +205,8 @@ export default function PackageAudit({ currentReport }: PackageAuditProps) {
                   name="storageLocation"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Storage Location *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <FormLabel>Storage Location (Optional)</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || ""}>
                         <FormControl>
                           <SelectTrigger data-testid="select-storage-location">
                             <SelectValue placeholder="Select location" />
@@ -233,9 +230,9 @@ export default function PackageAudit({ currentReport }: PackageAuditProps) {
                   name="receivedTime"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Received Time *</FormLabel>
+                      <FormLabel>Received Time (Optional)</FormLabel>
                       <FormControl>
-                        <Input {...field} data-testid="input-received-time" />
+                        <Input {...field} value={field.value || ""} data-testid="input-received-time" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

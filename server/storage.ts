@@ -205,6 +205,9 @@ export class MemStorage implements IStorage {
     const audit: PackageAudit = { 
       ...insertAudit, 
       id,
+      residentName: insertAudit.residentName ?? null,
+      storageLocation: insertAudit.storageLocation ?? null,
+      receivedTime: insertAudit.receivedTime ?? null,
       carrier: insertAudit.carrier ?? null,
       trackingNumber: insertAudit.trackingNumber ?? null,
       packageType: insertAudit.packageType ?? null,
