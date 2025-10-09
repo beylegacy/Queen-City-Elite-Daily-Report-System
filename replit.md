@@ -67,6 +67,14 @@ This is a comprehensive front desk management system designed specifically for Q
 - **Reliable Queries**: Switched to connection pool-based queries with SSL support for production environment
 - **Database Schema**: Updated packageAudits table to support nullable fields (residentName, storageLocation, receivedTime)
 
+### Shift Switching Protection (October 9, 2025)
+- **Problem Fixed**: Previously 2nd/3rd shift agents could overwrite 1st shift agent's name when accessing the same report
+- **Protected Fields**: When a report already exists, agent name and shift time fields become read-only (disabled)
+- **Visual Indicators**: Labels show "(Report Created By)" and "(Original)" when report exists
+- **Smart Button**: Button changes from "Create Report" to "Use Existing Report" when report exists
+- **No Overwrites**: Clicking the button confirms report is ready without updating agent information
+- **Shared Reports**: All shifts can add their own packages, check-ins, duties, and notes to the same daily report while preserving the original creator's information
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
