@@ -38,6 +38,23 @@ This is a comprehensive front desk management system designed specifically for Q
 - **Package Summary Dashboard**: Real-time summary showing breakdown of active, picked up, returned, and total packages
 - **Multi-Device Sync**: React Query ensures package status updates sync across all devices in real-time
 
+### Manager Authentication System (October 9, 2025)
+- **Secure Login**: Username-based authentication with bcrypt password hashing for manager and admin accounts
+- **Session Management**: Express-session with PostgreSQL persistence, 12-hour default timeout, optional 7-day "Remember me"
+- **Forced Password Change**: All new accounts require password change on first login with strict validation (10+ chars, uppercase, lowercase, digit)
+- **Manager Dashboard**: Protected route at /manager displaying user profile (full name, username, role) with password change functionality
+- **User Database**: PostgreSQL users table with fields: id, username, passwordHash, fullName, role, requiresPasswordChange, createdAt
+- **5 Seeded Manager Accounts**:
+  - Nasire Bey (nbey) - admin role
+  - Vince Kelley (vkelley) - manager role
+  - Harlander Townes (htownes) - manager role
+  - Robin Saunders (rsaunders) - manager role
+  - Katrina Turner (kturner) - manager role
+- **Default Password**: "Welcome2024!" for all initial accounts (requires immediate change on first login)
+- **Hybrid Storage**: User authentication queries PostgreSQL database via Drizzle ORM while other data uses in-memory storage
+- **API Endpoints**: POST /api/auth/login, POST /api/auth/logout, GET /api/auth/me, POST /api/auth/change-password
+- **Frontend Auth Context**: React context provider managing authentication state, user session, and password change flows
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
