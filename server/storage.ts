@@ -75,33 +75,43 @@ export interface IStorage {
 }
 
 export class DbStorage implements IStorage {
+  private initialized = false;
+  
   constructor() {
-    this.initializeDefaultData();
+    // Don't await in constructor - initialize on first use
+    this.initializeDefaultData().catch(err => console.error('Failed to initialize storage:', err));
   }
 
   private async initializeDefaultData() {
-    // Check if properties already exist
-    const existingProperties = await db.select().from(properties);
+    if (this.initialized) return;
     
-    if (existingProperties.length === 0) {
-      // Initialize default properties
-      const defaultProperties = [
-        "Element South Park (North)",
-        "Element South Park (South)",
-        "The Resident At South Park",
-        "Ashton South End",
-        "Hazel South Park",
-        "The Ascher (North)",
-        "The Ascher (South)",
-        "Skye Condos",
-        "Lennox  South Park",
-        "Inspire South Park",
-        "Ascent Uptown"
-      ];
+    try {
+      // Check if properties already exist
+      const existingProperties = await db.select().from(properties);
       
-      for (const name of defaultProperties) {
-        await db.insert(properties).values({ name, address: null, isActive: true });
+      if (existingProperties.length === 0) {
+        // Initialize default properties
+        const defaultProperties = [
+          "Element South Park (North)",
+          "Element South Park (South)",
+          "The Resident At South Park",
+          "Ashton South End",
+          "Hazel South Park",
+          "The Ascher (North)",
+          "The Ascher (South)",
+          "Skye Condos",
+          "Lennox  South Park",
+          "Inspire South Park",
+          "Ascent Uptown"
+        ];
+        
+        for (const name of defaultProperties) {
+          await db.insert(properties).values({ name, address: null, isActive: true });
+        }
       }
+      this.initialized = true;
+    } catch (error) {
+      console.error('Error initializing default data:', error);
     }
   }
 
@@ -135,22 +145,43 @@ export class DbStorage implements IStorage {
   }
 
   async getDailyReportWithData(id: string): Promise<ReportWithData | undefined> {
-    const result = await db.select().from(dailyReports).where(eq(dailyReports.id, id)).limit(1);
-    const report = result[0];
-    if (!report) return undefined;
+    try {
+      const result = await db.select().from(dailyReports).where(eq(dailyReports.id, id)).limit(1);
+      const report = Array.isArray(result) ? result[0] : undefined;
+      if (!report) return undefined;
 
-    const reportGuestCheckins = await db.select().from(guestCheckins).where(eq(guestCheckins.reportId, id));
-    const reportPackageAudits = await db.select().from(packageAudits).where(eq(packageAudits.reportId, id));
-    const reportDailyDuties = await db.select().from(dailyDuties).where(eq(dailyDuties.reportId, id));
-    const reportShiftNotes = await db.select().from(shiftNotes).where(eq(shiftNotes.reportId, id));
+      // Fetch related data with error handling for Neon driver issues
+      const safeSelect = async <T>(promise: Promise<T[]>): Promise<T[]> => {
+        try {
+          const result = await promise;
+          return Array.isArray(result) ? result : [];
+        } catch (err) {
+          // Handle Neon driver's null.map() error
+          if (err instanceof TypeError && err.message.includes("Cannot read properties of null")) {
+            return [];
+          }
+          throw err;
+        }
+      };
 
-    return {
-      ...report,
-      guestCheckins: reportGuestCheckins,
-      packageAudits: reportPackageAudits,
-      dailyDuties: reportDailyDuties,
-      shiftNotes: reportShiftNotes
-    };
+      const [reportGuestCheckins, reportPackageAudits, reportDailyDuties, reportShiftNotes] = await Promise.all([
+        safeSelect(db.select().from(guestCheckins).where(eq(guestCheckins.reportId, id))),
+        safeSelect(db.select().from(packageAudits).where(eq(packageAudits.reportId, id))),
+        safeSelect(db.select().from(dailyDuties).where(eq(dailyDuties.reportId, id))),
+        safeSelect(db.select().from(shiftNotes).where(eq(shiftNotes.reportId, id)))
+      ]);
+
+      return {
+        ...report,
+        guestCheckins: reportGuestCheckins,
+        packageAudits: reportPackageAudits,
+        dailyDuties: reportDailyDuties,
+        shiftNotes: reportShiftNotes
+      };
+    } catch (error) {
+      console.error('Error in getDailyReportWithData:', error);
+      throw error;
+    }
   }
 
   async getDailyReportByDateAndProperty(date: string, propertyId: string): Promise<DailyReport | undefined> {

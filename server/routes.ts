@@ -195,7 +195,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(report);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch report" });
+      console.error("Error fetching report:", error);
+      res.status(500).json({ message: "Failed to fetch report", error: error instanceof Error ? error.message : String(error) });
     }
   });
 
