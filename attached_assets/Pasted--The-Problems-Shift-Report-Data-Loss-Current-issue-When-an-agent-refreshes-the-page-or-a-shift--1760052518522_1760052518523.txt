@@ -1,0 +1,86 @@
+🧩 The Problems
+
+Shift Report Data Loss
+
+Current issue: When an agent refreshes the page or a shift changes, the shift report data is erased.
+
+What I need:
+
+Implement persistent data storage using Replit DB, SQLite, or Firebase (whichever integrates easiest).
+
+Reports should be saved and reloaded automatically based on the combination of:
+
+Property name
+
+Date
+
+Shift
+
+When a user logs in or selects a shift, the most recent report for that property should load automatically.
+
+The app must not clear data on page reload or shift switch.
+
+Package Tracking Is Too Complicated
+
+I need a simpler workflow.
+
+Add functionality to auto-populate resident details:
+
+When a user types in an apartment number, the system should automatically fill in the resident’s name, email, and phone.
+
+The resident data should be stored in a simple database or JSON file that can be updated via the manager dashboard.
+
+Manager Section Lacks Core Controls
+Add the following CRUD functionality for the Manager role:
+
+Property Management
+
+Add or delete properties.
+
+Daily Task Management
+
+Add or edit daily tasks assigned to each property.
+
+Email Notification Settings
+
+Add, remove, or edit the list of emails that receive reports for each property.
+
+All manager changes should be saved persistently (not lost on page refresh).
+
+🧠 Technical Requirements
+
+Ensure all new data (reports, residents, properties, tasks, emails) are stored in persistent storage.
+
+Keep the UI simple and easy to use — especially for front desk agents.
+
+Maintain existing authentication or role separation if it already exists (agents vs. managers).
+
+Minimize reloads — use AJAX or Fetch for background saves when possible.
+
+Use clean modular code (React, Flask, Node, or whichever stack this project already uses).
+
+✅ Expected Behavior After Fixes
+
+Shift reports persist through refreshes and are retrievable by property/date/shift.
+
+Package tracking auto-fills resident info when apartment number is entered.
+
+Managers can dynamically manage:
+
+Properties
+
+Daily tasks
+
+Notification emails
+
+All data changes persist after reloads or logouts.
+
+💡 (Optional Enhancements if Time Allows)
+
+Add an “Activity Log” showing which user made which updates.
+
+Add export functionality for daily reports (CSV or PDF).
+
+Add a visible confirmation message when data is successfully saved.
+
+Goal: Upgrade the Queen City Elite Daily Report System into a stable, persistent, and manager-configurable tool that can be used reliably across multiple properties and shifts.

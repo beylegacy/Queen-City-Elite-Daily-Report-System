@@ -16,6 +16,10 @@ import {
   type ReportWithData,
   type User,
   type InsertUser,
+  type Resident,
+  type InsertResident,
+  type DutyTemplate,
+  type InsertDutyTemplate,
   users,
   properties,
   dailyReports,
@@ -23,7 +27,9 @@ import {
   packageAudits,
   dailyDuties,
   shiftNotes,
-  emailSettings
+  emailSettings,
+  residents,
+  dutyTemplates
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -72,6 +78,19 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUserPassword(id: string, passwordHash: string, requiresPasswordChange: boolean): Promise<void>;
+  
+  // Residents
+  getResidentsByProperty(propertyId: string): Promise<Resident[]>;
+  getResidentByApartment(propertyId: string, apartmentNumber: string): Promise<Resident | undefined>;
+  createResident(resident: InsertResident): Promise<Resident>;
+  updateResident(id: string, resident: Partial<InsertResident>): Promise<Resident | undefined>;
+  deleteResident(id: string): Promise<boolean>;
+  
+  // Duty Templates
+  getDutyTemplatesByProperty(propertyId: string): Promise<DutyTemplate[]>;
+  createDutyTemplate(template: InsertDutyTemplate): Promise<DutyTemplate>;
+  updateDutyTemplate(id: string, template: Partial<InsertDutyTemplate>): Promise<DutyTemplate | undefined>;
+  deleteDutyTemplate(id: string): Promise<boolean>;
 }
 
 export class DbStorage implements IStorage {
@@ -394,6 +413,62 @@ export class DbStorage implements IStorage {
     await db.update(users)
       .set({ passwordHash, requiresPasswordChange })
       .where(eq(users.id, id));
+  }
+
+  // Residents
+  async getResidentsByProperty(propertyId: string): Promise<Resident[]> {
+    return await db.select().from(residents).where(eq(residents.propertyId, propertyId));
+  }
+
+  async getResidentByApartment(propertyId: string, apartmentNumber: string): Promise<Resident | undefined> {
+    const result = await db.select().from(residents)
+      .where(and(
+        eq(residents.propertyId, propertyId),
+        eq(residents.apartmentNumber, apartmentNumber)
+      ))
+      .limit(1);
+    return result[0];
+  }
+
+  async createResident(insertResident: InsertResident): Promise<Resident> {
+    const result = await db.insert(residents).values(insertResident).returning();
+    return result[0];
+  }
+
+  async updateResident(id: string, updateData: Partial<InsertResident>): Promise<Resident | undefined> {
+    const result = await db.update(residents)
+      .set(updateData)
+      .where(eq(residents.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteResident(id: string): Promise<boolean> {
+    const result = await db.delete(residents).where(eq(residents.id, id));
+    return true;
+  }
+
+  // Duty Templates
+  async getDutyTemplatesByProperty(propertyId: string): Promise<DutyTemplate[]> {
+    return await db.select().from(dutyTemplates).where(eq(dutyTemplates.propertyId, propertyId));
+  }
+
+  async createDutyTemplate(insertTemplate: InsertDutyTemplate): Promise<DutyTemplate> {
+    const result = await db.insert(dutyTemplates).values(insertTemplate).returning();
+    return result[0];
+  }
+
+  async updateDutyTemplate(id: string, updateData: Partial<InsertDutyTemplate>): Promise<DutyTemplate | undefined> {
+    const result = await db.update(dutyTemplates)
+      .set(updateData)
+      .where(eq(dutyTemplates.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteDutyTemplate(id: string): Promise<boolean> {
+    const result = await db.delete(dutyTemplates).where(eq(dutyTemplates.id, id));
+    return true;
   }
 }
 

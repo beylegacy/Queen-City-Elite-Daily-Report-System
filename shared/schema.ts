@@ -95,6 +95,16 @@ export const propertyAssignments = pgTable("property_assignments", {
   propertyId: varchar("property_id").notNull(),
 });
 
+export const residents = pgTable("residents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  propertyId: varchar("property_id").notNull(),
+  apartmentNumber: text("apartment_number").notNull(),
+  residentName: text("resident_name").notNull(),
+  email: text("email"),
+  phone: text("phone"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
 // Insert schemas
 export const insertPropertySchema = createInsertSchema(properties).omit({ id: true });
 export const insertDailyReportSchema = createInsertSchema(dailyReports).omit({ id: true, createdAt: true });
@@ -106,6 +116,7 @@ export const insertEmailSettingsSchema = createInsertSchema(emailSettings).omit(
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
 export const insertDutyTemplateSchema = createInsertSchema(dutyTemplates).omit({ id: true });
 export const insertPropertyAssignmentSchema = createInsertSchema(propertyAssignments).omit({ id: true });
+export const insertResidentSchema = createInsertSchema(residents).omit({ id: true, createdAt: true });
 
 // Types
 export type Property = typeof properties.$inferSelect;
@@ -128,6 +139,8 @@ export type DutyTemplate = typeof dutyTemplates.$inferSelect;
 export type InsertDutyTemplate = z.infer<typeof insertDutyTemplateSchema>;
 export type PropertyAssignment = typeof propertyAssignments.$inferSelect;
 export type InsertPropertyAssignment = z.infer<typeof insertPropertyAssignmentSchema>;
+export type Resident = typeof residents.$inferSelect;
+export type InsertResident = z.infer<typeof insertResidentSchema>;
 
 // Utility types
 export type ReportWithData = DailyReport & {

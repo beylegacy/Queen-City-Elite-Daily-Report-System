@@ -14,7 +14,9 @@ import {
   insertPackageAuditSchema,
   insertDailyDutySchema,
   insertShiftNotesSchema,
-  insertEmailSettingsSchema
+  insertEmailSettingsSchema,
+  insertResidentSchema,
+  insertDutyTemplateSchema
 } from "@shared/schema";
 
 // Configure Passport Local Strategy
@@ -621,6 +623,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Email error:', error);
       res.status(500).json({ message: "Failed to send email" });
+    }
+  });
+
+  // Resident Routes
+  app.get("/api/residents/property/:propertyId", async (req, res) => {
+    try {
+      const residents = await storage.getResidentsByProperty(req.params.propertyId);
+      res.json(residents);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch residents" });
+    }
+  });
+
+  app.get("/api/residents/lookup/:propertyId/:apartmentNumber", async (req, res) => {
+    try {
+      const resident = await storage.getResidentByApartment(req.params.propertyId, req.params.apartmentNumber);
+      if (!resident) {
+        return res.status(404).json({ message: "Resident not found" });
+      }
+      res.json(resident);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to lookup resident" });
+    }
+  });
+
+  app.post("/api/residents", async (req, res) => {
+    try {
+      const validatedData = insertResidentSchema.parse(req.body);
+      const resident = await storage.createResident(validatedData);
+      res.status(201).json(resident);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid resident data" });
+    }
+  });
+
+  app.put("/api/residents/:id", async (req, res) => {
+    try {
+      const validatedData = insertResidentSchema.partial().parse(req.body);
+      const resident = await storage.updateResident(req.params.id, validatedData);
+      if (!resident) {
+        return res.status(404).json({ message: "Resident not found" });
+      }
+      res.json(resident);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid resident data" });
+    }
+  });
+
+  app.delete("/api/residents/:id", async (req, res) => {
+    try {
+      await storage.deleteResident(req.params.id);
+      res.json({ message: "Resident deleted" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete resident" });
+    }
+  });
+
+  // Duty Template Routes
+  app.get("/api/duty-templates/property/:propertyId", async (req, res) => {
+    try {
+      const templates = await storage.getDutyTemplatesByProperty(req.params.propertyId);
+      res.json(templates);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch duty templates" });
+    }
+  });
+
+  app.post("/api/duty-templates", async (req, res) => {
+    try {
+      const validatedData = insertDutyTemplateSchema.parse(req.body);
+      const template = await storage.createDutyTemplate(validatedData);
+      res.status(201).json(template);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid duty template data" });
+    }
+  });
+
+  app.put("/api/duty-templates/:id", async (req, res) => {
+    try {
+      const validatedData = insertDutyTemplateSchema.partial().parse(req.body);
+      const template = await storage.updateDutyTemplate(req.params.id, validatedData);
+      if (!template) {
+        return res.status(404).json({ message: "Duty template not found" });
+      }
+      res.json(template);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid duty template data" });
+    }
+  });
+
+  app.delete("/api/duty-templates/:id", async (req, res) => {
+    try {
+      await storage.deleteDutyTemplate(req.params.id);
+      res.json({ message: "Duty template deleted" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete duty template" });
     }
   });
 
