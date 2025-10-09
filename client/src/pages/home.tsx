@@ -185,7 +185,7 @@ export default function Home() {
               </TabsContent>
 
               <TabsContent value="package-audit" className="mt-0">
-                <PackageAudit currentReport={currentReport} />
+                <PackageAudit currentReport={currentReport} propertyId={selectedProperty} />
               </TabsContent>
 
               <TabsContent value="daily-duties" className="mt-0">

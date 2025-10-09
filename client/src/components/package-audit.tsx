@@ -18,6 +18,7 @@ import { Package, Trash2, AlertCircle, Plus } from "lucide-react";
 
 interface PackageAuditProps {
   currentReport: DailyReport | null;
+  propertyId: string | null;
 }
 
 const packageFormSchema = insertPackageAuditSchema.extend({
@@ -38,8 +39,9 @@ function getCurrentTime(): string {
   return now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 }
 
-export default function PackageAudit({ currentReport }: PackageAuditProps) {
+export default function PackageAudit({ currentReport, propertyId }: PackageAuditProps) {
   const [isAddingPackage, setIsAddingPackage] = useState(false);
+  const [lookupApartment, setLookupApartment] = useState<string>("");
   const { toast } = useToast();
 
   const { data: allPackages = [], isLoading } = useQuery<PackageAudit[]>({
@@ -74,6 +76,24 @@ export default function PackageAudit({ currentReport }: PackageAuditProps) {
       form.setValue("receivedTime", getCurrentTime());
     }
   }, [currentReport, form]);
+
+  // Lookup resident by apartment number
+  const { data: residentData } = useQuery({
+    queryKey: ['/api/residents/lookup', propertyId, lookupApartment],
+    enabled: !!propertyId && !!lookupApartment && lookupApartment.length >= 1,
+    retry: false,
+  });
+
+  // Auto-fill resident name when found
+  useEffect(() => {
+    if (residentData && typeof residentData === 'object' && 'residentName' in residentData) {
+      form.setValue("residentName", residentData.residentName as string);
+      toast({
+        title: "Resident Found",
+        description: `Auto-filled: ${residentData.residentName}`,
+      });
+    }
+  }, [residentData, form, toast]);
 
   const createPackageMutation = useMutation({
     mutationFn: async (data: z.infer<typeof packageFormSchema>) => {
@@ -191,9 +211,17 @@ export default function PackageAudit({ currentReport }: PackageAuditProps) {
                   name="roomNumber"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Room / Unit Number *</FormLabel>
+                      <FormLabel>Room / Unit Number * {residentData ? '✓ Resident Found' : ''}</FormLabel>
                       <FormControl>
-                        <Input placeholder="304" {...field} data-testid="input-room-number" />
+                        <Input 
+                          placeholder="304" 
+                          {...field} 
+                          onChange={(e) => {
+                            field.onChange(e);
+                            setLookupApartment(e.target.value);
+                          }}
+                          data-testid="input-room-number" 
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
