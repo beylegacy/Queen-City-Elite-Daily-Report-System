@@ -16,11 +16,18 @@ import {
   type ReportWithData,
   type User,
   type InsertUser,
-  users
+  users,
+  properties,
+  dailyReports,
+  guestCheckins,
+  packageAudits,
+  dailyDuties,
+  shiftNotes,
+  emailSettings
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 export interface IStorage {
   // Properties
@@ -67,264 +74,272 @@ export interface IStorage {
   updateUserPassword(id: string, passwordHash: string, requiresPasswordChange: boolean): Promise<void>;
 }
 
-export class MemStorage implements IStorage {
-  private properties: Map<string, Property> = new Map();
-  private dailyReports: Map<string, DailyReport> = new Map();
-  private guestCheckins: Map<string, GuestCheckin> = new Map();
-  private packageAudits: Map<string, PackageAudit> = new Map();
-  private dailyDuties: Map<string, DailyDuty> = new Map();
-  private shiftNotes: Map<string, ShiftNotes> = new Map();
-  private emailSettings: Map<string, EmailSettings> = new Map();
-
+export class DbStorage implements IStorage {
   constructor() {
     this.initializeDefaultData();
   }
 
-  private initializeDefaultData() {
-    // Initialize default properties
-    const defaultProperties = [
-      "Element South Park (North)",
-      "Element South Park (South)",
-      "The Resident At South Park",
-      "Ashton South End",
-      "Hazel South Park",
-      "The Ascher (North)",
-      "The Ascher (South)",
-      "Skye Condos",
-      "Lennox  South Park",
-      "Inspire South Park",
-      "Ascent Uptown"
-    ];
-
-    defaultProperties.forEach(name => {
-      const id = randomUUID();
-      this.properties.set(id, { id, name, address: null, isActive: true });
-    });
-
-    // Email settings will be configured per property by users
+  private async initializeDefaultData() {
+    // Check if properties already exist
+    const existingProperties = await db.select().from(properties);
+    
+    if (existingProperties.length === 0) {
+      // Initialize default properties
+      const defaultProperties = [
+        "Element South Park (North)",
+        "Element South Park (South)",
+        "The Resident At South Park",
+        "Ashton South End",
+        "Hazel South Park",
+        "The Ascher (North)",
+        "The Ascher (South)",
+        "Skye Condos",
+        "Lennox  South Park",
+        "Inspire South Park",
+        "Ascent Uptown"
+      ];
+      
+      for (const name of defaultProperties) {
+        await db.insert(properties).values({ name, address: null, isActive: true });
+      }
+    }
   }
 
   // Properties
   async getProperties(): Promise<Property[]> {
-    return Array.from(this.properties.values());
+    return await db.select().from(properties);
   }
 
   async getProperty(id: string): Promise<Property | undefined> {
-    return this.properties.get(id);
+    const result = await db.select().from(properties).where(eq(properties.id, id)).limit(1);
+    return result[0];
   }
 
   async createProperty(insertProperty: InsertProperty): Promise<Property> {
-    const id = randomUUID();
-    const property: Property = { 
-      ...insertProperty, 
-      id, 
+    const result = await db.insert(properties).values({
+      name: insertProperty.name,
       address: insertProperty.address ?? null,
-      isActive: insertProperty.isActive ?? true 
-    };
-    this.properties.set(id, property);
-    return property;
+      isActive: insertProperty.isActive ?? true
+    }).returning();
+    return result[0];
   }
 
   // Daily Reports
   async getDailyReports(): Promise<DailyReport[]> {
-    return Array.from(this.dailyReports.values());
+    return await db.select().from(dailyReports);
   }
 
   async getDailyReport(id: string): Promise<DailyReport | undefined> {
-    return this.dailyReports.get(id);
+    const result = await db.select().from(dailyReports).where(eq(dailyReports.id, id)).limit(1);
+    return result[0];
   }
 
   async getDailyReportWithData(id: string): Promise<ReportWithData | undefined> {
-    const report = this.dailyReports.get(id);
+    const result = await db.select().from(dailyReports).where(eq(dailyReports.id, id)).limit(1);
+    const report = result[0];
     if (!report) return undefined;
 
-    const guestCheckins = Array.from(this.guestCheckins.values()).filter(g => g.reportId === id);
-    const packageAudits = Array.from(this.packageAudits.values()).filter(p => p.reportId === id);
-    const dailyDuties = Array.from(this.dailyDuties.values()).filter(d => d.reportId === id);
-    const shiftNotes = Array.from(this.shiftNotes.values()).filter(s => s.reportId === id);
+    const reportGuestCheckins = await db.select().from(guestCheckins).where(eq(guestCheckins.reportId, id));
+    const reportPackageAudits = await db.select().from(packageAudits).where(eq(packageAudits.reportId, id));
+    const reportDailyDuties = await db.select().from(dailyDuties).where(eq(dailyDuties.reportId, id));
+    const reportShiftNotes = await db.select().from(shiftNotes).where(eq(shiftNotes.reportId, id));
 
     return {
       ...report,
-      guestCheckins,
-      packageAudits,
-      dailyDuties,
-      shiftNotes
+      guestCheckins: reportGuestCheckins,
+      packageAudits: reportPackageAudits,
+      dailyDuties: reportDailyDuties,
+      shiftNotes: reportShiftNotes
     };
   }
 
   async getDailyReportByDateAndProperty(date: string, propertyId: string): Promise<DailyReport | undefined> {
-    return Array.from(this.dailyReports.values()).find(
-      report => report.reportDate === date && report.propertyId === propertyId
-    );
+    const result = await db.select().from(dailyReports)
+      .where(and(
+        eq(dailyReports.reportDate, date),
+        eq(dailyReports.propertyId, propertyId)
+      ))
+      .limit(1);
+    return result[0];
   }
 
   async createDailyReport(insertReport: InsertDailyReport): Promise<DailyReport> {
-    const id = randomUUID();
-    const report: DailyReport = { 
-      ...insertReport, 
-      id, 
-      shiftTime: insertReport.shiftTime || null,
-      createdAt: new Date()
-    };
-    this.dailyReports.set(id, report);
-    return report;
+    const result = await db.insert(dailyReports).values({
+      propertyId: insertReport.propertyId,
+      reportDate: insertReport.reportDate,
+      agentName: insertReport.agentName,
+      shiftTime: insertReport.shiftTime ?? null
+    }).returning();
+    return result[0];
   }
 
   async updateDailyReport(id: string, updateData: Partial<InsertDailyReport>): Promise<DailyReport | undefined> {
-    const existing = this.dailyReports.get(id);
-    if (!existing) return undefined;
-
-    const updated = { ...existing, ...updateData };
-    this.dailyReports.set(id, updated);
-    return updated;
+    const result = await db.update(dailyReports)
+      .set(updateData)
+      .where(eq(dailyReports.id, id))
+      .returning();
+    return result[0];
   }
 
   // Guest Check-ins
   async getGuestCheckins(reportId: string): Promise<GuestCheckin[]> {
-    return Array.from(this.guestCheckins.values()).filter(g => g.reportId === reportId);
+    return await db.select().from(guestCheckins).where(eq(guestCheckins.reportId, reportId));
   }
 
   async createGuestCheckin(insertCheckin: InsertGuestCheckin): Promise<GuestCheckin> {
-    const id = randomUUID();
-    const checkin: GuestCheckin = { ...insertCheckin, id, notes: insertCheckin.notes || null };
-    this.guestCheckins.set(id, checkin);
-    return checkin;
+    const result = await db.insert(guestCheckins).values({
+      reportId: insertCheckin.reportId,
+      guestName: insertCheckin.guestName,
+      apartment: insertCheckin.apartment,
+      checkInTime: insertCheckin.checkInTime,
+      notes: insertCheckin.notes ?? null,
+      shift: insertCheckin.shift
+    }).returning();
+    return result[0];
   }
 
   async deleteGuestCheckin(id: string): Promise<boolean> {
-    return this.guestCheckins.delete(id);
+    const result = await db.delete(guestCheckins).where(eq(guestCheckins.id, id)).returning();
+    return result.length > 0;
   }
 
   // Package Audits
   async getPackageAudits(reportId: string): Promise<PackageAudit[]> {
-    return Array.from(this.packageAudits.values()).filter(p => p.reportId === reportId);
+    return await db.select().from(packageAudits).where(eq(packageAudits.reportId, reportId));
   }
 
   async createPackageAudit(insertAudit: InsertPackageAudit): Promise<PackageAudit> {
-    const id = randomUUID();
-    const audit: PackageAudit = { 
-      ...insertAudit, 
-      id,
+    const result = await db.insert(packageAudits).values({
+      reportId: insertAudit.reportId,
       residentName: insertAudit.residentName ?? null,
+      roomNumber: insertAudit.roomNumber,
       storageLocation: insertAudit.storageLocation ?? null,
-      receivedTime: insertAudit.receivedTime ?? null,
       carrier: insertAudit.carrier ?? null,
       trackingNumber: insertAudit.trackingNumber ?? null,
       packageType: insertAudit.packageType ?? null,
+      receivedTime: insertAudit.receivedTime ?? null,
       notes: insertAudit.notes ?? null,
+      shift: insertAudit.shift,
       status: "active",
       statusChangedAt: null,
       statusChangedBy: null
-    };
-    this.packageAudits.set(id, audit);
-    return audit;
+    }).returning();
+    return result[0];
   }
 
   async updatePackageStatus(id: string, status: "picked_up" | "returned_to_sender", changedBy: string): Promise<PackageAudit | undefined> {
-    const existing = this.packageAudits.get(id);
-    if (!existing) return undefined;
-
-    const updated = {
-      ...existing,
-      status,
-      statusChangedAt: new Date(),
-      statusChangedBy: changedBy
-    };
-    this.packageAudits.set(id, updated);
-    return updated;
+    const result = await db.update(packageAudits)
+      .set({
+        status,
+        statusChangedAt: new Date(),
+        statusChangedBy: changedBy
+      })
+      .where(eq(packageAudits.id, id))
+      .returning();
+    return result[0];
   }
 
   async deletePackageAudit(id: string): Promise<boolean> {
-    return this.packageAudits.delete(id);
+    const result = await db.delete(packageAudits).where(eq(packageAudits.id, id)).returning();
+    return result.length > 0;
   }
 
   // Daily Duties
   async getDailyDuties(reportId: string): Promise<DailyDuty[]> {
-    return Array.from(this.dailyDuties.values()).filter(d => d.reportId === reportId);
+    return await db.select().from(dailyDuties).where(eq(dailyDuties.reportId, reportId));
   }
 
   async createDailyDuty(insertDuty: InsertDailyDuty): Promise<DailyDuty> {
-    const id = randomUUID();
-    const duty: DailyDuty = { ...insertDuty, id, completed: insertDuty.completed ?? false, completedAt: null };
-    this.dailyDuties.set(id, duty);
-    return duty;
+    const result = await db.insert(dailyDuties).values({
+      reportId: insertDuty.reportId,
+      task: insertDuty.task,
+      completed: insertDuty.completed ?? false,
+      completedAt: null
+    }).returning();
+    return result[0];
   }
 
   async updateDailyDuty(id: string, updateData: Partial<InsertDailyDuty>): Promise<DailyDuty | undefined> {
-    const existing = this.dailyDuties.get(id);
-    if (!existing) return undefined;
-
-    const updated = { 
-      ...existing, 
-      ...updateData,
-      completedAt: updateData.completed ? new Date() : null
-    };
-    this.dailyDuties.set(id, updated);
-    return updated;
+    const setData: any = { ...updateData };
+    if (updateData.completed !== undefined) {
+      setData.completedAt = updateData.completed ? new Date() : null;
+    }
+    
+    const result = await db.update(dailyDuties)
+      .set(setData)
+      .where(eq(dailyDuties.id, id))
+      .returning();
+    return result[0];
   }
 
   // Shift Notes
   async getShiftNotes(reportId: string): Promise<ShiftNotes[]> {
-    return Array.from(this.shiftNotes.values()).filter(s => s.reportId === reportId);
+    return await db.select().from(shiftNotes).where(eq(shiftNotes.reportId, reportId));
   }
 
   async upsertShiftNotes(insertNotes: InsertShiftNotes): Promise<ShiftNotes> {
-    // Find existing notes for same report and shift
-    const existing = Array.from(this.shiftNotes.values()).find(
-      s => s.reportId === insertNotes.reportId && s.shift === insertNotes.shift
-    );
+    const existingResult = await db.select().from(shiftNotes)
+      .where(and(
+        eq(shiftNotes.reportId, insertNotes.reportId),
+        eq(shiftNotes.shift, insertNotes.shift)
+      ))
+      .limit(1);
+    
+    const existing = existingResult[0];
 
     if (existing) {
-      const updated = { 
-        ...existing, 
-        content: insertNotes.content,
-        updatedAt: new Date()
-      };
-      this.shiftNotes.set(existing.id, updated);
-      return updated;
+      const result = await db.update(shiftNotes)
+        .set({
+          content: insertNotes.content,
+          updatedAt: new Date()
+        })
+        .where(eq(shiftNotes.id, existing.id))
+        .returning();
+      return result[0];
     } else {
-      const id = randomUUID();
-      const notes: ShiftNotes = { 
-        ...insertNotes, 
-        id,
+      const result = await db.insert(shiftNotes).values({
+        reportId: insertNotes.reportId,
+        content: insertNotes.content,
+        shift: insertNotes.shift,
         updatedAt: new Date()
-      };
-      this.shiftNotes.set(id, notes);
-      return notes;
+      }).returning();
+      return result[0];
     }
   }
 
   // Email Settings
   async getEmailSettings(propertyId: string): Promise<EmailSettings | undefined> {
-    return Array.from(this.emailSettings.values()).find(s => s.propertyId === propertyId);
+    const result = await db.select().from(emailSettings).where(eq(emailSettings.propertyId, propertyId)).limit(1);
+    return result[0];
   }
 
   async upsertEmailSettings(insertSettings: InsertEmailSettings): Promise<EmailSettings> {
-    const existing = Array.from(this.emailSettings.values()).find(
-      s => s.propertyId === insertSettings.propertyId
-    );
+    const existingResult = await db.select().from(emailSettings)
+      .where(eq(emailSettings.propertyId, insertSettings.propertyId))
+      .limit(1);
+    
+    const existing = existingResult[0];
 
     if (existing) {
-      const updated = { 
-        ...existing, 
-        ...insertSettings,
-        format: insertSettings.format || existing.format,
-        dailySendTime: insertSettings.dailySendTime || existing.dailySendTime,
-        autoSend: insertSettings.autoSend ?? existing.autoSend
-      };
-      this.emailSettings.set(existing.id, updated);
-      return updated;
+      const result = await db.update(emailSettings)
+        .set({
+          recipients: insertSettings.recipients,
+          format: insertSettings.format ?? existing.format,
+          dailySendTime: insertSettings.dailySendTime ?? existing.dailySendTime,
+          autoSend: insertSettings.autoSend ?? existing.autoSend
+        })
+        .where(eq(emailSettings.id, existing.id))
+        .returning();
+      return result[0];
     } else {
-      const id = randomUUID();
-      const settings: EmailSettings = { 
-        ...insertSettings, 
-        id,
-        format: insertSettings.format || null,
-        dailySendTime: insertSettings.dailySendTime || null,
+      const result = await db.insert(emailSettings).values({
+        propertyId: insertSettings.propertyId,
+        recipients: insertSettings.recipients,
+        format: insertSettings.format ?? null,
+        dailySendTime: insertSettings.dailySendTime ?? null,
         autoSend: insertSettings.autoSend ?? null
-      };
-      this.emailSettings.set(id, settings);
-      return settings;
+      }).returning();
+      return result[0];
     }
   }
 
@@ -351,4 +366,4 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DbStorage();
