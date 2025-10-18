@@ -12,8 +12,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { LogOut, Lock, Settings, User, Plus, Pencil, Trash2, Upload } from "lucide-react";
+import { LogOut, Lock, Settings, User, Plus, Pencil, Trash2, Upload, Clock } from "lucide-react";
 import { ResidentImporter } from "@/components/resident-importer";
+import { AgentShiftManager } from "@/components/agent-shift-manager";
 import type { Property, Resident, DutyTemplate } from "@shared/schema";
 
 export default function Manager() {
@@ -473,7 +474,7 @@ export default function Manager() {
 
         {selectedProperty && (
           <Tabs defaultValue="residents" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-4">
+            <TabsList className="grid w-full grid-cols-4 mb-4">
               <TabsTrigger value="residents" data-testid="tab-residents">
                 <Settings className="w-4 h-4 mr-2" />
                 Residents
@@ -481,6 +482,10 @@ export default function Manager() {
               <TabsTrigger value="import" data-testid="tab-import">
                 <Upload className="w-4 h-4 mr-2" />
                 Import Residents
+              </TabsTrigger>
+              <TabsTrigger value="agents" data-testid="tab-agents">
+                <Clock className="w-4 h-4 mr-2" />
+                Agent Shifts
               </TabsTrigger>
               <TabsTrigger value="templates" data-testid="tab-templates">
                 <Settings className="w-4 h-4 mr-2" />
@@ -680,6 +685,13 @@ export default function Manager() {
 
             <TabsContent value="import">
               <ResidentImporter
+                propertyId={selectedProperty}
+                propertyName={properties.find(p => p.id === selectedProperty)?.name || ""}
+              />
+            </TabsContent>
+
+            <TabsContent value="agents">
+              <AgentShiftManager
                 propertyId={selectedProperty}
                 propertyName={properties.find(p => p.id === selectedProperty)?.name || ""}
               />

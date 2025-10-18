@@ -1,14 +1,33 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { Property, DailyReport, InsertDailyReport, InsertProperty } from "@shared/schema";
+import type { Property, DailyReport, InsertDailyReport, InsertProperty, AgentShiftAssignment } from "@shared/schema";
 import { Building, Calendar, Clock, User, PlusCircle } from "lucide-react";
+
+// Function to determine current shift based on current time
+function getCurrentShift(): string {
+  const now = new Date();
+  const hours = now.getHours();
+  
+  // 7am-3pm (7-14)
+  if (hours >= 7 && hours < 15) {
+    return "7:00 am to 3:00 pm";
+  }
+  // 3pm-11pm (15-22)
+  else if (hours >= 15 && hours < 23) {
+    return "3:00 pm to 11:00 pm";
+  }
+  // 11pm-7am (23-6)
+  else {
+    return "11:00 pm to 7:00 am";
+  }
+}
 
 interface PropertySelectorProps {
   properties: Property[];
@@ -42,6 +61,28 @@ export default function PropertySelector({
   const [isAddPropertyOpen, setIsAddPropertyOpen] = useState(false);
   const [newPropertyName, setNewPropertyName] = useState("");
   const [newPropertyAddress, setNewPropertyAddress] = useState("");
+
+  // Fetch agent shift assignments for the selected property
+  const { data: agentAssignments = [] } = useQuery<AgentShiftAssignment[]>({
+    queryKey: ['/api/agent-shifts', selectedProperty],
+    enabled: !!selectedProperty,
+  });
+
+  // Auto-populate agent name and shift time when property is selected (only if no existing report)
+  useEffect(() => {
+    if (selectedProperty && !currentReport && agentAssignments.length > 0) {
+      const currentShift = getCurrentShift();
+      const assignment = agentAssignments.find(a => a.shift === currentShift);
+      
+      if (assignment) {
+        onAgentNameChange(assignment.agentName);
+        onShiftTimeChange(currentShift);
+      } else {
+        // Auto-set shift time even if no agent is assigned
+        onShiftTimeChange(currentShift);
+      }
+    }
+  }, [selectedProperty, currentReport, agentAssignments]);
 
   const createPropertyMutation = useMutation({
     mutationFn: async (propertyData: InsertProperty) => {
