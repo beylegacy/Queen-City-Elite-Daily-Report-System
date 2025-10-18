@@ -1,0 +1,41 @@
+Please implement the following three features for the property management application:
+1. Resident Import via Spreadsheet
+Add functionality to import current residents for each property through spreadsheet upload:
+
+Allow CSV/Excel file upload for bulk resident import
+Flexible column mapping: Support flexible spreadsheet formats since different properties may provide different data
+Recommended columns include: Unit Number, Resident Name, Move-in Date, Lease End Date, Email, Phone Number
+Only Unit Number and Resident Name should be required fields - all other fields are optional
+Provide column mapping interface where user can match their spreadsheet columns to system fields
+Handle missing/optional data gracefully - import should succeed even with partial information
+Validate data that IS provided (check date formats for dates, email formats for emails, etc.)
+Show preview of data before final import with ability to review and correct errors
+Associate imported residents with the specific property being managed
+Handle duplicate entries gracefully (offer options to skip, update, or merge)
+Provide success/error summary after import completion showing what was imported and what was skipped
+
+2. Agent Name by Shift
+Modify the agent/staff assignment system to support different agent names per shift:
+
+Allow setting different agent names for each shift (e.g., Morning, Afternoon, Evening, Night)
+Store agent name configurations per property
+Display the appropriate agent name based on current time/active shift
+Include UI for managers to configure agent names for each shift in property settings
+Ensure agent name updates reflect immediately in the resident-facing portal
+
+3. Daily Email Distribution List
+Add email notification system with property-specific recipient lists:
+
+Allow managers to configure a list of email addresses for each property
+Add interface to add/remove/edit email recipients per property
+Implement daily automated email sending at a configurable time
+Email should include relevant daily summary/reports for that property
+Include email delivery status/logs for troubleshooting
+Provide option to manually trigger test emails
+
+Technical Considerations:
+
+Ensure all features have proper authentication and authorization (only property managers can access these functions)
+Add appropriate error handling and user feedback
+Make UI intuitive and mobile-responsive
+Consider data privacy and security for resident information

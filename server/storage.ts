@@ -20,6 +20,8 @@ import {
   type InsertResident,
   type DutyTemplate,
   type InsertDutyTemplate,
+  type AgentShiftAssignment,
+  type InsertAgentShiftAssignment,
   users,
   properties,
   dailyReports,
@@ -29,7 +31,8 @@ import {
   shiftNotes,
   emailSettings,
   residents,
-  dutyTemplates
+  dutyTemplates,
+  agentShiftAssignments
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -91,6 +94,15 @@ export interface IStorage {
   createDutyTemplate(template: InsertDutyTemplate): Promise<DutyTemplate>;
   updateDutyTemplate(id: string, template: Partial<InsertDutyTemplate>): Promise<DutyTemplate | undefined>;
   deleteDutyTemplate(id: string): Promise<boolean>;
+  
+  // Agent Shift Assignments
+  getAgentShiftAssignmentsByProperty(propertyId: string): Promise<AgentShiftAssignment[]>;
+  getAgentShiftAssignment(propertyId: string, shift: string): Promise<AgentShiftAssignment | undefined>;
+  upsertAgentShiftAssignment(assignment: InsertAgentShiftAssignment): Promise<AgentShiftAssignment>;
+  deleteAgentShiftAssignment(id: string): Promise<boolean>;
+  
+  // Bulk Resident Import
+  bulkCreateResidents(residents: InsertResident[]): Promise<Resident[]>;
 }
 
 export class DbStorage implements IStorage {
@@ -469,6 +481,56 @@ export class DbStorage implements IStorage {
   async deleteDutyTemplate(id: string): Promise<boolean> {
     const result = await db.delete(dutyTemplates).where(eq(dutyTemplates.id, id));
     return true;
+  }
+
+  // Agent Shift Assignments
+  async getAgentShiftAssignmentsByProperty(propertyId: string): Promise<AgentShiftAssignment[]> {
+    return await db.select().from(agentShiftAssignments)
+      .where(eq(agentShiftAssignments.propertyId, propertyId));
+  }
+
+  async getAgentShiftAssignment(propertyId: string, shift: string): Promise<AgentShiftAssignment | undefined> {
+    const result = await db.select().from(agentShiftAssignments)
+      .where(and(
+        eq(agentShiftAssignments.propertyId, propertyId),
+        eq(agentShiftAssignments.shift, shift)
+      ))
+      .limit(1);
+    return result[0];
+  }
+
+  async upsertAgentShiftAssignment(assignment: InsertAgentShiftAssignment): Promise<AgentShiftAssignment> {
+    const existing = await this.getAgentShiftAssignment(assignment.propertyId, assignment.shift);
+    
+    if (existing) {
+      const result = await db.update(agentShiftAssignments)
+        .set({ agentName: assignment.agentName })
+        .where(eq(agentShiftAssignments.id, existing.id))
+        .returning();
+      return result[0];
+    } else {
+      const result = await db.insert(agentShiftAssignments)
+        .values(assignment)
+        .returning();
+      return result[0];
+    }
+  }
+
+  async deleteAgentShiftAssignment(id: string): Promise<boolean> {
+    await db.delete(agentShiftAssignments).where(eq(agentShiftAssignments.id, id));
+    return true;
+  }
+
+  // Bulk Resident Import
+  async bulkCreateResidents(residentsData: InsertResident[]): Promise<Resident[]> {
+    if (residentsData.length === 0) {
+      return [];
+    }
+    
+    const result = await db.insert(residents)
+      .values(residentsData)
+      .returning();
+    return result;
   }
 }
 

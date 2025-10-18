@@ -102,6 +102,16 @@ export const residents = pgTable("residents", {
   residentName: text("resident_name").notNull(),
   email: text("email"),
   phone: text("phone"),
+  moveInDate: text("move_in_date"), // YYYY-MM-DD format
+  leaseEndDate: text("lease_end_date"), // YYYY-MM-DD format
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const agentShiftAssignments = pgTable("agent_shift_assignments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  propertyId: varchar("property_id").notNull(),
+  shift: text("shift").notNull(), // "7:00 am to 3:00 pm", "3:00 pm to 11:00 pm", etc.
+  agentName: text("agent_name").notNull(),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
@@ -117,6 +127,7 @@ export const insertUserSchema = createInsertSchema(users).omit({ id: true, creat
 export const insertDutyTemplateSchema = createInsertSchema(dutyTemplates).omit({ id: true });
 export const insertPropertyAssignmentSchema = createInsertSchema(propertyAssignments).omit({ id: true });
 export const insertResidentSchema = createInsertSchema(residents).omit({ id: true, createdAt: true });
+export const insertAgentShiftAssignmentSchema = createInsertSchema(agentShiftAssignments).omit({ id: true, createdAt: true });
 
 // Types
 export type Property = typeof properties.$inferSelect;
@@ -141,6 +152,8 @@ export type PropertyAssignment = typeof propertyAssignments.$inferSelect;
 export type InsertPropertyAssignment = z.infer<typeof insertPropertyAssignmentSchema>;
 export type Resident = typeof residents.$inferSelect;
 export type InsertResident = z.infer<typeof insertResidentSchema>;
+export type AgentShiftAssignment = typeof agentShiftAssignments.$inferSelect;
+export type InsertAgentShiftAssignment = z.infer<typeof insertAgentShiftAssignmentSchema>;
 
 // Utility types
 export type ReportWithData = DailyReport & {
