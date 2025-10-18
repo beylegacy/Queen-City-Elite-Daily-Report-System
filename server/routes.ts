@@ -16,7 +16,8 @@ import {
   insertShiftNotesSchema,
   insertEmailSettingsSchema,
   insertResidentSchema,
-  insertDutyTemplateSchema
+  insertDutyTemplateSchema,
+  insertAgentShiftAssignmentSchema
 } from "@shared/schema";
 
 // Configure Passport Local Strategy
@@ -719,6 +720,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Duty template deleted" });
     } catch (error) {
       res.status(500).json({ message: "Failed to delete duty template" });
+    }
+  });
+
+  // Agent Shift Assignment Routes
+  app.get("/api/agent-shifts/:propertyId", async (req, res) => {
+    try {
+      const assignments = await storage.getAgentShiftAssignmentsByProperty(req.params.propertyId);
+      res.json(assignments);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch agent shift assignments" });
+    }
+  });
+
+  app.post("/api/agent-shifts", async (req, res) => {
+    try {
+      const validatedData = insertAgentShiftAssignmentSchema.parse(req.body);
+      const assignment = await storage.upsertAgentShiftAssignment(validatedData);
+      res.json(assignment);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid agent shift assignment data" });
+    }
+  });
+
+  app.delete("/api/agent-shifts/:id", async (req, res) => {
+    try {
+      await storage.deleteAgentShiftAssignment(req.params.id);
+      res.json({ message: "Agent shift assignment deleted" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete agent shift assignment" });
+    }
+  });
+
+  // Bulk Resident Import Route
+  app.post("/api/residents/import", async (req, res) => {
+    try {
+      const { residents: residentsData } = req.body;
+      
+      if (!Array.isArray(residentsData) || residentsData.length === 0) {
+        return res.status(400).json({ message: "Invalid import data - expected array of residents" });
+      }
+
+      // Validate each resident
+      const validatedResidents = residentsData.map(resident => 
+        insertResidentSchema.parse(resident)
+      );
+
+      const createdResidents = await storage.bulkCreateResidents(validatedResidents);
+      
+      res.json({
+        success: true,
+        imported: createdResidents.length,
+        residents: createdResidents
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation error",
+          errors: error.errors
+        });
+      }
+      res.status(500).json({ message: "Failed to import residents" });
     }
   });
 
