@@ -12,7 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { LogOut, Lock, Settings, User, Plus, Pencil, Trash2 } from "lucide-react";
+import { LogOut, Lock, Settings, User, Plus, Pencil, Trash2, Upload } from "lucide-react";
+import { ResidentImporter } from "@/components/resident-importer";
 import type { Property, Resident, DutyTemplate } from "@shared/schema";
 
 export default function Manager() {
@@ -472,10 +473,14 @@ export default function Manager() {
 
         {selectedProperty && (
           <Tabs defaultValue="residents" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-4">
+            <TabsList className="grid w-full grid-cols-3 mb-4">
               <TabsTrigger value="residents" data-testid="tab-residents">
                 <Settings className="w-4 h-4 mr-2" />
                 Residents
+              </TabsTrigger>
+              <TabsTrigger value="import" data-testid="tab-import">
+                <Upload className="w-4 h-4 mr-2" />
+                Import Residents
               </TabsTrigger>
               <TabsTrigger value="templates" data-testid="tab-templates">
                 <Settings className="w-4 h-4 mr-2" />
@@ -671,6 +676,13 @@ export default function Manager() {
                   )}
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="import">
+              <ResidentImporter
+                propertyId={selectedProperty}
+                propertyName={properties.find(p => p.id === selectedProperty)?.name || ""}
+              />
             </TabsContent>
 
             <TabsContent value="templates">
