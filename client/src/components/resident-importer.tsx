@@ -328,12 +328,12 @@ export function ResidentImporter({ propertyId, propertyName }: ResidentImporterP
 
                 <div className="grid grid-cols-2 gap-4 items-center">
                   <Label>Email (optional)</Label>
-                  <Select value={columnMapping.email || ""} onValueChange={(value) => setColumnMapping({...columnMapping, email: value})}>
+                  <Select value={columnMapping.email || "_skip"} onValueChange={(value) => setColumnMapping({...columnMapping, email: value === "_skip" ? "" : value})}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select column or skip..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Skip this field</SelectItem>
+                      <SelectItem value="_skip">Skip this field</SelectItem>
                       {csvHeaders.map(header => (
                         <SelectItem key={header} value={header}>{header}</SelectItem>
                       ))}
@@ -343,12 +343,12 @@ export function ResidentImporter({ propertyId, propertyName }: ResidentImporterP
 
                 <div className="grid grid-cols-2 gap-4 items-center">
                   <Label>Phone (optional)</Label>
-                  <Select value={columnMapping.phone || ""} onValueChange={(value) => setColumnMapping({...columnMapping, phone: value})}>
+                  <Select value={columnMapping.phone || "_skip"} onValueChange={(value) => setColumnMapping({...columnMapping, phone: value === "_skip" ? "" : value})}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select column or skip..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Skip this field</SelectItem>
+                      <SelectItem value="_skip">Skip this field</SelectItem>
                       {csvHeaders.map(header => (
                         <SelectItem key={header} value={header}>{header}</SelectItem>
                       ))}
@@ -358,12 +358,12 @@ export function ResidentImporter({ propertyId, propertyName }: ResidentImporterP
 
                 <div className="grid grid-cols-2 gap-4 items-center">
                   <Label>Move-in Date (optional)</Label>
-                  <Select value={columnMapping.moveInDate || ""} onValueChange={(value) => setColumnMapping({...columnMapping, moveInDate: value})}>
+                  <Select value={columnMapping.moveInDate || "_skip"} onValueChange={(value) => setColumnMapping({...columnMapping, moveInDate: value === "_skip" ? "" : value})}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select column or skip..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Skip this field</SelectItem>
+                      <SelectItem value="_skip">Skip this field</SelectItem>
                       {csvHeaders.map(header => (
                         <SelectItem key={header} value={header}>{header}</SelectItem>
                       ))}
@@ -373,12 +373,12 @@ export function ResidentImporter({ propertyId, propertyName }: ResidentImporterP
 
                 <div className="grid grid-cols-2 gap-4 items-center">
                   <Label>Lease End Date (optional)</Label>
-                  <Select value={columnMapping.leaseEndDate || ""} onValueChange={(value) => setColumnMapping({...columnMapping, leaseEndDate: value})}>
+                  <Select value={columnMapping.leaseEndDate || "_skip"} onValueChange={(value) => setColumnMapping({...columnMapping, leaseEndDate: value === "_skip" ? "" : value})}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select column or skip..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Skip this field</SelectItem>
+                      <SelectItem value="_skip">Skip this field</SelectItem>
                       {csvHeaders.map(header => (
                         <SelectItem key={header} value={header}>{header}</SelectItem>
                       ))}

@@ -10,23 +10,55 @@ import { useToast } from "@/hooks/use-toast";
 import type { Property, DailyReport, InsertDailyReport, InsertProperty, AgentShiftAssignment } from "@shared/schema";
 import { Building, Calendar, Clock, User, PlusCircle } from "lucide-react";
 
-// Function to determine current shift based on current time
-function getCurrentShift(): string {
+// Parse shift time string to get start and end hours
+function parseShiftTime(shiftTime: string): { start: number; end: number } | null {
+  const patterns = {
+    "7:00 am to 3:00 pm": { start: 7, end: 15 },
+    "3:00 pm to 11:00 pm": { start: 15, end: 23 },
+    "11:00 pm to 7:00 am": { start: 23, end: 7 }, // wraps around midnight
+    "7:00 am to 7:00 pm": { start: 7, end: 19 },
+    "7:00 pm to 7:00 am": { start: 19, end: 7 }, // wraps around midnight
+  };
+  return patterns[shiftTime as keyof typeof patterns] || null;
+}
+
+// Check if current hour falls within a shift's time range
+function isTimeInShift(currentHour: number, start: number, end: number): boolean {
+  if (start < end) {
+    // Normal shift (no midnight wrap)
+    return currentHour >= start && currentHour < end;
+  } else {
+    // Shift wraps around midnight
+    return currentHour >= start || currentHour < end;
+  }
+}
+
+// Find matching shift from configured assignments based on current time
+function findMatchingShift(assignments: AgentShiftAssignment[]): AgentShiftAssignment | null {
   const now = new Date();
-  const hours = now.getHours();
+  const currentHour = now.getHours();
   
-  // 7am-3pm (7-14)
-  if (hours >= 7 && hours < 15) {
-    return "7:00 am to 3:00 pm";
-  }
-  // 3pm-11pm (15-22)
-  else if (hours >= 15 && hours < 23) {
-    return "3:00 pm to 11:00 pm";
-  }
-  // 11pm-7am (23-6)
-  else {
-    return "11:00 pm to 7:00 am";
-  }
+  // Find all shifts that match the current time
+  const matchingShifts = assignments.filter(assignment => {
+    const shiftTime = parseShiftTime(assignment.shift);
+    if (!shiftTime) return false;
+    return isTimeInShift(currentHour, shiftTime.start, shiftTime.end);
+  });
+  
+  if (matchingShifts.length === 0) return null;
+  if (matchingShifts.length === 1) return matchingShifts[0];
+  
+  // If multiple shifts match, prefer longer shifts (12-hour over 8-hour)
+  const shiftDuration = (shift: AgentShiftAssignment) => {
+    const time = parseShiftTime(shift.shift);
+    if (!time) return 0;
+    if (time.start < time.end) return time.end - time.start;
+    return (24 - time.start) + time.end; // wraps around midnight
+  };
+  
+  return matchingShifts.reduce((longest, current) => 
+    shiftDuration(current) > shiftDuration(longest) ? current : longest
+  );
 }
 
 interface PropertySelectorProps {
@@ -71,15 +103,11 @@ export default function PropertySelector({
   // Auto-populate agent name and shift time when property is selected (only if no existing report)
   useEffect(() => {
     if (selectedProperty && !currentReport && agentAssignments.length > 0) {
-      const currentShift = getCurrentShift();
-      const assignment = agentAssignments.find(a => a.shift === currentShift);
+      const matchingAssignment = findMatchingShift(agentAssignments);
       
-      if (assignment) {
-        onAgentNameChange(assignment.agentName);
-        onShiftTimeChange(currentShift);
-      } else {
-        // Auto-set shift time even if no agent is assigned
-        onShiftTimeChange(currentShift);
+      if (matchingAssignment) {
+        onAgentNameChange(matchingAssignment.agentName);
+        onShiftTimeChange(matchingAssignment.shift);
       }
     }
   }, [selectedProperty, currentReport, agentAssignments]);
