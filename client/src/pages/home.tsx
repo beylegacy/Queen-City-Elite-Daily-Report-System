@@ -53,46 +53,48 @@ export default function Home() {
     <div className="min-h-screen p-4 lg:p-6 bg-slate-50">
       <div className="max-w-7xl mx-auto">
         
-        {/* Header */}
-        <div className="gradient-slate-blue rounded-t-2xl text-white p-6 lg:p-8" data-testid="header">
-          <div className="flex items-center justify-between">
+        {/* Enhanced Header with Gradient and Animations */}
+        <div className="gradient-slate-blue rounded-t-2xl text-white p-6 lg:p-8 shadow-xl" data-testid="header">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
             <div>
-              <div className="flex items-center space-x-3">
-                <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-                <h1 className="text-2xl lg:text-3xl font-bold">Front Desk Daily Report System</h1>
+              <div className="flex items-center gap-3 mb-2">
+                <span className="status-indicator"></span>
+                <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Front Desk Daily Report System</h1>
               </div>
-              <p className="text-blue-100 mt-2 text-sm lg:text-base">Queen City Elite LLC</p>
+              <p className="text-blue-100 text-sm lg:text-base font-medium">
+                Multi-Property Operations Management  
+                <span className="time-badge ml-3">
+                  {currentTime.toLocaleTimeString('en-US', { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    hour12: true 
+                  })}
+                </span>
+              </p>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <Link href="/login">
                 <Button 
                   variant="outline" 
                   size="sm"
-                  className="bg-white/10 hover:bg-white/20 text-white border-white/30 min-h-[44px] touch-manipulation"
+                  className="bg-white/10 hover:bg-white/20 text-white border-white/30 min-h-[44px] touch-manipulation transition-all hover:scale-105"
                   data-testid="button-manager-login"
                 >
                   <LogIn className="w-4 h-4 mr-2" />
                   Manager Login
                 </Button>
               </Link>
-              <div className="text-right">
-                <div className="bg-blue-500/20 px-4 py-2 rounded-lg">
-                  <div className="text-sm font-medium" data-testid="current-date">
-                    {currentTime.toLocaleDateString('en-US', { 
-                      weekday: 'long',
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric' 
-                    })}
-                  </div>
-                  <div className="text-xs text-blue-200 flex items-center gap-1" data-testid="current-time">
-                    <Clock className="w-3 h-3" />
-                    {currentTime.toLocaleTimeString('en-US', { 
-                      hour: '2-digit', 
-                      minute: '2-digit',
-                      hour12: true 
-                    })}
-                  </div>
+              <div className="bg-white/10 backdrop-blur-sm px-4 py-2 rounded-xl border border-white/20">
+                <div className="text-sm font-semibold" data-testid="current-date">
+                  {currentTime.toLocaleDateString('en-US', { 
+                    month: 'short', 
+                    day: 'numeric',
+                    year: 'numeric'
+                  })}
+                </div>
+                <div className="text-xs text-blue-100 flex items-center gap-1" data-testid="current-time">
+                  <Clock className="w-3 h-3" />
+                  {currentTime.toLocaleDateString('en-US', { weekday: 'short' })}
                 </div>
               </div>
             </div>
