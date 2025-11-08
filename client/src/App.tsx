@@ -7,6 +7,8 @@ import { AuthProvider } from "@/contexts/auth-context";
 import Home from "@/pages/home";
 import Login from "@/pages/login";
 import Manager from "@/pages/manager";
+import ForgotPassword from "@/pages/forgot-password";
+import ResetPassword from "@/pages/reset-password";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -15,6 +17,8 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/login" component={Login} />
       <Route path="/manager" component={Manager} />
+      <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/reset-password" component={ResetPassword} />
       <Route component={NotFound} />
     </Switch>
   );
