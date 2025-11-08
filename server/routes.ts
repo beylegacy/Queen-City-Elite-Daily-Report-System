@@ -194,10 +194,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         expiresAt
       });
       
-      // Send reset email
-      const { sendPasswordResetEmail } = await import('./email-util.js');
-      await sendPasswordResetEmail(user.email, resetToken, user.username);
+      // Try to send reset email, but don't fail if email service is unavailable
+      try {
+        const { sendPasswordResetEmail } = await import('./email-util.js');
+        await sendPasswordResetEmail(user.email, resetToken, user.username);
+        console.log(`Password reset email sent to ${user.email}`);
+      } catch (emailError: any) {
+        // Log the email error but don't expose it to the user
+        console.error('Failed to send password reset email:', emailError.message);
+        console.log(`Password reset token created for user ${user.username}, but email failed to send.`);
+        console.log(`Reset URL: ${process.env.REPLIT_DOMAINS?.split(',')[0] || 'http://localhost:5000'}/reset-password?token=${resetToken}`);
+      }
       
+      // Always return success (security best practice - don't reveal if email actually sent)
       res.json({ message: 'If an account with that information exists, a password reset email has been sent.' });
     } catch (error) {
       console.error('Forgot password error:', error);
