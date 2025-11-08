@@ -34,6 +34,20 @@ Preferred communication style: Simple, everyday language.
 - **Session Management**: `connect-pg-simple` for PostgreSQL-backed session storage.
 - **Security**: Express session middleware with secure cookie configuration.
 - **User Authentication**: Username-based login with bcrypt hashing, forced password changes on first login, and manager dashboard with profile and password change functionality.
+- **Password Reset System** (November 2025):
+  - **Email-Based Recovery**: Secure password reset via email links with one-hour expiration tokens
+  - **Security Features**: 
+    - Secure random token generation (32-byte cryptographic tokens)
+    - One-time use tokens that are invalidated after successful reset
+    - Generic success messages to prevent account enumeration
+    - Graceful SMTP failure handling (errors logged, not exposed to users)
+  - **User Experience**: 
+    - Forgot Password page accessible from login screen
+    - Reset link sent to registered email addresses
+    - Password requirements enforced (10+ chars, uppercase, lowercase, digit)
+    - Visual password strength indicators and requirements checklist
+  - **Manager Email Addresses**: All 5 manager accounts configured with @queencityelite.com domain emails
+  - **Admin Fallback**: Reset URLs logged to server console when SMTP fails (admin can manually provide links)
 
 ### Key Features and Implementations
 - **Resident-Based Package Tracking**: Detailed package information per resident, including room number, storage location, carrier, tracking number, and status (`active`, `picked_up`, `returned_to_sender`).
