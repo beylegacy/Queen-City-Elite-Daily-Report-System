@@ -24,7 +24,7 @@ export async function sendPasswordResetEmail(
     throw new Error('Email service is not configured');
   }
 
-  const transporter = nodemailer.createTransporter({
+  const transporter = nodemailer.createTransport({
     host: smtpHost,
     port: parseInt(smtpPort, 10),
     secure: parseInt(smtpPort, 10) === 465,
