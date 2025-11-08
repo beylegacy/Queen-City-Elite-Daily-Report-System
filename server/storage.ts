@@ -22,6 +22,8 @@ import {
   type InsertDutyTemplate,
   type AgentShiftAssignment,
   type InsertAgentShiftAssignment,
+  type PasswordResetToken,
+  type InsertPasswordResetToken,
   users,
   properties,
   dailyReports,
@@ -32,7 +34,8 @@ import {
   emailSettings,
   residents,
   dutyTemplates,
-  agentShiftAssignments
+  agentShiftAssignments,
+  passwordResetTokens
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -79,8 +82,15 @@ export interface IStorage {
   // Users
   getUserById(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUserPassword(id: string, passwordHash: string, requiresPasswordChange: boolean): Promise<void>;
+  updateUserEmail(id: string, email: string): Promise<void>;
+  
+  // Password Reset Tokens
+  createPasswordResetToken(token: InsertPasswordResetToken): Promise<PasswordResetToken>;
+  getPasswordResetToken(token: string): Promise<PasswordResetToken | undefined>;
+  markPasswordResetTokenAsUsed(token: string): Promise<void>;
   
   // Residents
   getResidentsByProperty(propertyId: string): Promise<Resident[]>;
@@ -425,6 +435,34 @@ export class DbStorage implements IStorage {
     await db.update(users)
       .set({ passwordHash, requiresPasswordChange })
       .where(eq(users.id, id));
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    return result[0];
+  }
+
+  async updateUserEmail(id: string, email: string): Promise<void> {
+    await db.update(users)
+      .set({ email })
+      .where(eq(users.id, id));
+  }
+
+  // Password Reset Tokens
+  async createPasswordResetToken(token: InsertPasswordResetToken): Promise<PasswordResetToken> {
+    const result = await db.insert(passwordResetTokens).values(token).returning();
+    return result[0];
+  }
+
+  async getPasswordResetToken(token: string): Promise<PasswordResetToken | undefined> {
+    const result = await db.select().from(passwordResetTokens).where(eq(passwordResetTokens.token, token)).limit(1);
+    return result[0];
+  }
+
+  async markPasswordResetTokenAsUsed(token: string): Promise<void> {
+    await db.update(passwordResetTokens)
+      .set({ used: true })
+      .where(eq(passwordResetTokens.token, token));
   }
 
   // Residents

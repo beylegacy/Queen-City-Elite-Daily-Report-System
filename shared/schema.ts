@@ -74,11 +74,21 @@ export const emailSettings = pgTable("email_settings", {
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),
+  email: text("email").unique(),
   passwordHash: text("password_hash").notNull(),
   fullName: text("full_name").notNull(),
   role: text("role").notNull(), // "admin", "manager", "agent"
   requiresPasswordChange: boolean("requires_password_change").default(true),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+  used: boolean("used").default(false),
 });
 
 export const dutyTemplates = pgTable("duty_templates", {
@@ -128,6 +138,7 @@ export const insertDutyTemplateSchema = createInsertSchema(dutyTemplates).omit({
 export const insertPropertyAssignmentSchema = createInsertSchema(propertyAssignments).omit({ id: true });
 export const insertResidentSchema = createInsertSchema(residents).omit({ id: true, createdAt: true });
 export const insertAgentShiftAssignmentSchema = createInsertSchema(agentShiftAssignments).omit({ id: true, createdAt: true });
+export const insertPasswordResetTokenSchema = createInsertSchema(passwordResetTokens).omit({ id: true, createdAt: true, used: true });
 
 // Types
 export type Property = typeof properties.$inferSelect;
@@ -154,6 +165,8 @@ export type Resident = typeof residents.$inferSelect;
 export type InsertResident = z.infer<typeof insertResidentSchema>;
 export type AgentShiftAssignment = typeof agentShiftAssignments.$inferSelect;
 export type InsertAgentShiftAssignment = z.infer<typeof insertAgentShiftAssignmentSchema>;
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
+export type InsertPasswordResetToken = z.infer<typeof insertPasswordResetTokenSchema>;
 
 // Utility types
 export type ReportWithData = DailyReport & {
