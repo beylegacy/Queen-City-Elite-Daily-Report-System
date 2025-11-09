@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Clock, Users, CheckCircle, AlertCircle } from "lucide-react";
+import { Clock, Users, CheckCircle, AlertCircle, Package } from "lucide-react";
 import type { DailyReport, GuestCheckin, ShiftNotes } from "@shared/schema";
 
 interface ShiftReportsProps {
@@ -18,12 +18,51 @@ export default function ShiftReports({ currentReport }: ShiftReportsProps) {
     enabled: !!currentReport?.id,
   });
 
+  const { data: packageCounts1st = 0 } = useQuery<number>({
+    queryKey: ['/api/properties', currentReport?.propertyId, 'packages', 'count', '1st', currentReport?.reportDate],
+    enabled: !!currentReport?.propertyId && !!currentReport?.reportDate,
+    queryFn: async () => {
+      const response = await fetch(`/api/properties/${currentReport?.propertyId}/packages/count?shift=1st&date=${currentReport?.reportDate}`);
+      if (!response.ok) return 0;
+      const data = await response.json();
+      return data.count;
+    }
+  });
+
+  const { data: packageCounts2nd = 0 } = useQuery<number>({
+    queryKey: ['/api/properties', currentReport?.propertyId, 'packages', 'count', '2nd', currentReport?.reportDate],
+    enabled: !!currentReport?.propertyId && !!currentReport?.reportDate,
+    queryFn: async () => {
+      const response = await fetch(`/api/properties/${currentReport?.propertyId}/packages/count?shift=2nd&date=${currentReport?.reportDate}`);
+      if (!response.ok) return 0;
+      const data = await response.json();
+      return data.count;
+    }
+  });
+
+  const { data: packageCounts3rd = 0 } = useQuery<number>({
+    queryKey: ['/api/properties', currentReport?.propertyId, 'packages', 'count', '3rd', currentReport?.reportDate],
+    enabled: !!currentReport?.propertyId && !!currentReport?.reportDate,
+    queryFn: async () => {
+      const response = await fetch(`/api/properties/${currentReport?.propertyId}/packages/count?shift=3rd&date=${currentReport?.reportDate}`);
+      if (!response.ok) return 0;
+      const data = await response.json();
+      return data.count;
+    }
+  });
+
   const getShiftData = (shift: string) => {
     const shiftCheckins = guestCheckins.filter(g => g.shift === shift);
     const shiftNote = shiftNotes.find(note => note.shift === shift);
     
+    let packageCount = 0;
+    if (shift === '1st') packageCount = packageCounts1st;
+    else if (shift === '2nd') packageCount = packageCounts2nd;
+    else if (shift === '3rd') packageCount = packageCounts3rd;
+    
     return {
       checkins: shiftCheckins.length,
+      packages: packageCount,
       status: shiftCheckins.length > 0 ? 'Active' : 'Pending',
       agent: shiftNote?.agentName || 'Not assigned',
       shiftTime: shiftNote?.shiftTime || '',
@@ -107,6 +146,15 @@ export default function ShiftReports({ currentReport }: ShiftReportsProps) {
                   <span className="text-sm text-slate-600">Check-ins:</span>
                   <span className={`text-sm font-bold ${shift.checkinsColor}`} data-testid={`text-checkins-${shift.key}`}>
                     {shiftData.checkins}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-slate-600 flex items-center gap-1">
+                    <Package className="w-3.5 h-3.5" />
+                    Packages:
+                  </span>
+                  <span className={`text-sm font-bold text-amber-600`} data-testid={`text-packages-${shift.key}`}>
+                    {shiftData.packages}
                   </span>
                 </div>
                 <Button 
