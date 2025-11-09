@@ -59,6 +59,8 @@ export const shiftNotes = pgTable("shift_notes", {
   reportId: varchar("report_id").notNull(),
   content: text("content").notNull(),
   shift: text("shift").notNull(),
+  agentName: text("agent_name"),
+  shiftTime: text("shift_time"),
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
