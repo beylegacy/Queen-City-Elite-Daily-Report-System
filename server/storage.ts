@@ -24,6 +24,8 @@ import {
   type InsertAgentShiftAssignment,
   type PasswordResetToken,
   type InsertPasswordResetToken,
+  type Package,
+  type InsertPackage,
   users,
   properties,
   dailyReports,
@@ -35,11 +37,12 @@ import {
   residents,
   dutyTemplates,
   agentShiftAssignments,
-  passwordResetTokens
+  passwordResetTokens,
+  packages
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, or, ilike, desc, asc, lte, sql, count } from "drizzle-orm";
 
 export interface IStorage {
   // Properties
@@ -65,6 +68,24 @@ export interface IStorage {
   createPackageAudit(audit: InsertPackageAudit): Promise<PackageAudit>;
   updatePackageStatus(id: string, status: "picked_up" | "returned_to_sender", changedBy: string): Promise<PackageAudit | undefined>;
   deletePackageAudit(id: string): Promise<boolean>;
+  
+  // Packages (New Comprehensive Tracking System)
+  getPackagesByProperty(
+    propertyId: string,
+    filters?: {
+      status?: 'pending' | 'picked_up' | 'returned_to_sender';
+      search?: string;
+      sortBy?: 'receivedDate' | 'apartmentNumber' | 'daysOld';
+      limit?: number;
+      offset?: number;
+    }
+  ): Promise<Package[]>;
+  getPackageById(id: string): Promise<Package | undefined>;
+  getPackageAlerts(propertyId: string): Promise<Package[]>;
+  createPackage(pkg: InsertPackage): Promise<Package>;
+  updatePackage(id: string, pkg: Partial<InsertPackage>): Promise<Package | undefined>;
+  deletePackage(id: string): Promise<boolean>;
+  getPackageCountByProperty(propertyId: string, shift: '1st' | '2nd' | '3rd', date: string): Promise<number>;
   
   // Daily Duties
   getDailyDuties(reportId: string): Promise<DailyDuty[]>;
@@ -314,6 +335,114 @@ export class DbStorage implements IStorage {
   async deletePackageAudit(id: string): Promise<boolean> {
     const result = await db.delete(packageAudits).where(eq(packageAudits.id, id)).returning();
     return result.length > 0;
+  }
+
+  // Packages (New Comprehensive Tracking System)
+  async getPackagesByProperty(
+    propertyId: string,
+    filters?: {
+      status?: 'pending' | 'picked_up' | 'returned_to_sender';
+      search?: string;
+      sortBy?: 'receivedDate' | 'apartmentNumber' | 'daysOld';
+      limit?: number;
+      offset?: number;
+    }
+  ): Promise<Package[]> {
+    const conditions = [eq(packages.propertyId, propertyId)];
+    
+    if (filters?.status) {
+      conditions.push(eq(packages.status, filters.status));
+    }
+    
+    if (filters?.search) {
+      const searchPattern = `%${filters.search}%`;
+      conditions.push(
+        or(
+          ilike(packages.recipientName, searchPattern),
+          ilike(packages.apartmentNumber, searchPattern),
+          ilike(packages.trackingNumber, searchPattern)
+        )!
+      );
+    }
+    
+    let query = db.select().from(packages).where(and(...conditions)).$dynamic();
+    
+    if (filters?.sortBy === 'apartmentNumber') {
+      query = query.orderBy(asc(packages.apartmentNumber));
+    } else if (filters?.sortBy === 'daysOld') {
+      query = query.orderBy(asc(packages.receivedDate));
+    } else {
+      query = query.orderBy(desc(packages.receivedDate));
+    }
+    
+    if (filters?.limit !== undefined) {
+      query = query.limit(filters.limit);
+    }
+    
+    if (filters?.offset !== undefined) {
+      query = query.offset(filters.offset);
+    }
+    
+    return await query;
+  }
+
+  async getPackageById(id: string): Promise<Package | undefined> {
+    const result = await db.select().from(packages).where(eq(packages.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getPackageAlerts(propertyId: string): Promise<Package[]> {
+    const fiveDaysAgo = sql`NOW() - INTERVAL '5 days'`;
+    
+    const result = await db.select()
+      .from(packages)
+      .where(
+        and(
+          eq(packages.propertyId, propertyId),
+          eq(packages.status, 'pending'),
+          eq(packages.keepExtended, false),
+          lte(packages.receivedDate, fiveDaysAgo)
+        )
+      )
+      .orderBy(asc(packages.receivedDate));
+    
+    return result;
+  }
+
+  async createPackage(pkg: InsertPackage): Promise<Package> {
+    const result = await db.insert(packages).values(pkg).returning();
+    return result[0];
+  }
+
+  async updatePackage(id: string, pkg: Partial<InsertPackage>): Promise<Package | undefined> {
+    const result = await db.update(packages)
+      .set(pkg)
+      .where(eq(packages.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deletePackage(id: string): Promise<boolean> {
+    const result = await db.delete(packages).where(eq(packages.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async getPackageCountByProperty(
+    propertyId: string,
+    shift: '1st' | '2nd' | '3rd',
+    date: string
+  ): Promise<number> {
+    const result = await db.select({ count: count() })
+      .from(packages)
+      .where(
+        and(
+          eq(packages.propertyId, propertyId),
+          eq(packages.receivedShift, shift),
+          sql`DATE(${packages.receivedDate} AT TIME ZONE 'UTC') = ${date}`
+        )
+      );
+    
+    return result[0]?.count || 0;
   }
 
   // Daily Duties

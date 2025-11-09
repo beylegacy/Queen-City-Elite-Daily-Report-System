@@ -1,7 +1,12 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, boolean, timestamp, jsonb, pgEnum, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+
+export const packageStatusEnum = pgEnum("package_status", ["pending", "picked_up", "returned_to_sender"]);
+export const packageCarrierEnum = pgEnum("package_carrier", ["UPS", "FedEx", "USPS", "Amazon", "Other"]);
+export const packageSizeEnum = pgEnum("package_size", ["Small", "Medium", "Large", "Oversized"]);
+export const packageShiftEnum = pgEnum("package_shift", ["1st", "2nd", "3rd"]);
 
 export const properties = pgTable("properties", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -127,6 +132,33 @@ export const agentShiftAssignments = pgTable("agent_shift_assignments", {
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
+export const packages = pgTable("packages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  propertyId: varchar("property_id").notNull(),
+  trackingNumber: text("tracking_number"),
+  recipientName: text("recipient_name").notNull(),
+  apartmentNumber: text("apartment_number").notNull(),
+  carrier: packageCarrierEnum("carrier"),
+  packageSize: packageSizeEnum("package_size"),
+  storageLocation: text("storage_location"),
+  receivedDate: timestamp("received_date").notNull(),
+  receivedByAgent: text("received_by_agent").notNull(),
+  receivedShift: packageShiftEnum("received_shift").notNull(),
+  status: packageStatusEnum("status").notNull().default("pending"),
+  pickedUpDate: timestamp("picked_up_date"),
+  pickedUpByAgent: text("picked_up_by_agent"),
+  returnedDate: timestamp("returned_date"),
+  returnedByAgent: text("returned_by_agent"),
+  notes: text("notes"),
+  keepExtended: boolean("keep_extended").default(false),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).$onUpdate(() => new Date()),
+}, (table) => ({
+  propertyIdIdx: index("packages_property_id_idx").on(table.propertyId),
+  propertyIdStatusIdx: index("packages_property_id_status_idx").on(table.propertyId, table.status),
+  receivedDateIdx: index("packages_received_date_idx").on(table.receivedDate),
+}));
+
 // Insert schemas
 export const insertPropertySchema = createInsertSchema(properties).omit({ id: true });
 export const insertDailyReportSchema = createInsertSchema(dailyReports).omit({ id: true, createdAt: true });
@@ -141,6 +173,7 @@ export const insertPropertyAssignmentSchema = createInsertSchema(propertyAssignm
 export const insertResidentSchema = createInsertSchema(residents).omit({ id: true, createdAt: true });
 export const insertAgentShiftAssignmentSchema = createInsertSchema(agentShiftAssignments).omit({ id: true, createdAt: true });
 export const insertPasswordResetTokenSchema = createInsertSchema(passwordResetTokens).omit({ id: true, createdAt: true, used: true });
+export const insertPackageSchema = createInsertSchema(packages).omit({ id: true, createdAt: true, updatedAt: true });
 
 // Types
 export type Property = typeof properties.$inferSelect;
@@ -169,6 +202,8 @@ export type AgentShiftAssignment = typeof agentShiftAssignments.$inferSelect;
 export type InsertAgentShiftAssignment = z.infer<typeof insertAgentShiftAssignmentSchema>;
 export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 export type InsertPasswordResetToken = z.infer<typeof insertPasswordResetTokenSchema>;
+export type Package = typeof packages.$inferSelect;
+export type InsertPackage = z.infer<typeof insertPackageSchema>;
 
 // Utility types
 export type ReportWithData = DailyReport & {

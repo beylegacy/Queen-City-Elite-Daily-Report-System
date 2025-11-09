@@ -1,0 +1,130 @@
+I need to completely redesign the Package Audit system to make it a comprehensive package tracking system that works across all shifts and is property-specific.
+Current Problem:
+The package audit currently only counts packages per shift. I need a full package management system where packages can be tracked from arrival through pickup/return.
+Required Changes:
+1. Create New Database Table: packages
+sqlCREATE TABLE packages (
+  id TEXT PRIMARY KEY,
+  property_id TEXT NOT NULL,
+  tracking_number TEXT,
+  recipient_name TEXT NOT NULL,
+  apartment_number TEXT NOT NULL,
+  carrier TEXT, -- (e.g., UPS, FedEx, USPS, Amazon)
+  package_size TEXT, -- (e.g., Small, Medium, Large, Oversized)
+  storage_location TEXT, -- (e.g., Shelf 1, Bin 3, Oversized)
+  received_date TIMESTAMP NOT NULL,
+  received_by_agent TEXT NOT NULL, -- Agent who logged it in
+  received_shift TEXT NOT NULL, -- (1st, 2nd, 3rd)
+  status TEXT NOT NULL, -- (pending, picked_up, returned_to_sender, kept_extended)
+  picked_up_date TIMESTAMP,
+  picked_up_by_agent TEXT,
+  returned_date TIMESTAMP,
+  returned_by_agent TEXT,
+  notes TEXT,
+  keep_extended BOOLEAN DEFAULT FALSE, -- Flag to suppress 5-day warning
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+2. Replace the Package Audit Component (client/src/components/package-audit.tsx):
+Create a comprehensive package management interface with:
+Package Entry Form:
+
+Recipient name (required)
+Apartment number (required)
+Tracking number (optional)
+Carrier dropdown (UPS, FedEx, USPS, Amazon, Other)
+Package size (Small, Medium, Large, Oversized)
+Storage location dropdown (Shelf 1-4, Bin 1-6, Oversized)
+Notes field
+Auto-capture: received date, agent name from current shift, shift number
+
+Package List View:
+
+Display all pending packages for the current property
+Show package age in days (calculated from received_date)
+Visual warning indicator for packages 5+ days old (yellow/orange badge)
+Columns: Recipient, Apt #, Tracking, Carrier, Size, Location, Received Date, Days Old, Status, Actions
+
+Package Actions:
+
+"Mark as Picked Up" button - Opens dialog to confirm pickup, records pickup date and agent
+"Return to Sender" button - Opens dialog to confirm return, records return date and agent
+"Keep Extended" toggle - Allows suppressing the 5-day warning for residents who are away
+View Details - Shows full package info including all timestamps and notes
+
+Filter/Sort Options:
+
+Filter by status: All, Pending, Picked Up (last 7 days), Returned, Extended Stay
+Sort by: Received Date, Apartment Number, Days Old
+Search by: Recipient name, Apartment number, Tracking number
+
+5-Day Alert System:
+
+Badge showing total packages 5+ days old (unless "keep_extended" is true)
+Alert banner at top if there are packages to return
+List of packages needing attention
+
+3. Create Backend API Endpoints (server/routes.ts):
+typescript// Get all packages for a property
+GET /api/properties/:propertyId/packages
+// Query params: status (optional), sortBy (optional)
+
+// Create new package entry
+POST /api/properties/:propertyId/packages
+
+// Update package (mark picked up, returned, etc)
+PATCH /api/packages/:packageId
+
+// Get packages needing attention (5+ days, not extended)
+GET /api/properties/:propertyId/packages/alerts
+
+// Delete package (admin only)
+DELETE /api/packages/:packageId
+4. Update Schema Types (shared/schema.ts):
+Add TypeScript types for:
+
+Package table
+InsertPackage type
+PackageStatus enum
+PackageSize enum
+Carrier enum
+
+5. Integration with Shift Reports:
+
+When viewing shift reports, show a summary: "X packages received this shift"
+Link from shift report to full package list filtered by that shift
+Update the ShiftReports component to query and display package counts per shift
+
+6. UI/UX Requirements:
+
+Mobile-responsive design
+Color-coded status badges (Pending=blue, Picked Up=green, Returned=gray, Extended=orange)
+Days old badge that changes color (0-4 days=green, 5-7 days=yellow, 8+ days=red)
+Confirmation dialogs before marking packages as picked up or returned
+Toast notifications for all actions
+Loading states during API calls
+
+7. Property-Specific Data:
+
+All package queries must filter by property_id
+When a user selects a property in the PropertySelector, only show packages for that property
+Package counts and alerts should be property-specific
+
+8. Additional Features:
+
+Export package log to CSV/PDF
+Package history view (show picked up and returned packages from last 30 days)
+Bulk actions (mark multiple packages as picked up at once)
+Print package receipt/claim ticket
+
+Expected Result:
+A complete package tracking system where:
+
+Any agent on any shift can log incoming packages
+Any agent can mark packages as picked up or returned
+System automatically alerts for packages 5+ days old
+Agents can flag packages for extended stay to suppress alerts
+All data is property-specific and persists across shifts
+Full audit trail of who received/released each package
+
+Please implement all these changes with proper error handling, loading states, and responsive design.

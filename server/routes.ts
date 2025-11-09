@@ -17,7 +17,8 @@ import {
   insertEmailSettingsSchema,
   insertResidentSchema,
   insertDutyTemplateSchema,
-  insertAgentShiftAssignmentSchema
+  insertAgentShiftAssignmentSchema,
+  insertPackageSchema
 } from "@shared/schema";
 
 // Configure Passport Local Strategy
@@ -517,6 +518,103 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(settings);
     } catch (error) {
       res.status(400).json({ message: "Invalid email settings data" });
+    }
+  });
+
+  // Comprehensive Package Tracking Routes
+  app.get("/api/properties/:propertyId/packages", async (req, res) => {
+    try {
+      const querySchema = z.object({
+        status: z.enum(['pending', 'picked_up', 'returned_to_sender']).optional(),
+        search: z.string().optional(),
+        sortBy: z.enum(['receivedDate', 'apartmentNumber', 'daysOld']).optional(),
+        limit: z.coerce.number().positive().optional(),
+        offset: z.coerce.number().nonnegative().optional(),
+      });
+
+      const validatedQuery = querySchema.parse(req.query);
+      const packages = await storage.getPackagesByProperty(req.params.propertyId, validatedQuery);
+      res.json(packages);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid query parameters", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to fetch packages" });
+    }
+  });
+
+  app.get("/api/properties/:propertyId/packages/alerts", async (req, res) => {
+    try {
+      const alerts = await storage.getPackageAlerts(req.params.propertyId);
+      res.json(alerts);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch package alerts" });
+    }
+  });
+
+  app.get("/api/properties/:propertyId/packages/count", async (req, res) => {
+    try {
+      const querySchema = z.object({
+        shift: z.enum(['1st', '2nd', '3rd']),
+        date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), // YYYY-MM-DD format
+      });
+
+      const validatedQuery = querySchema.parse(req.query);
+      const count = await storage.getPackageCountByProperty(
+        req.params.propertyId,
+        validatedQuery.shift,
+        validatedQuery.date
+      );
+      res.json({ count });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid query parameters", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to get package count" });
+    }
+  });
+
+  app.post("/api/properties/:propertyId/packages", async (req, res) => {
+    try {
+      const validatedData = insertPackageSchema.parse({
+        ...req.body,
+        propertyId: req.params.propertyId
+      });
+      const pkg = await storage.createPackage(validatedData);
+      res.status(201).json(pkg);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid package data", errors: error.errors });
+      }
+      res.status(400).json({ message: "Invalid package data" });
+    }
+  });
+
+  app.patch("/api/packages/:packageId", async (req, res) => {
+    try {
+      const validatedData = insertPackageSchema.partial().parse(req.body);
+      const pkg = await storage.updatePackage(req.params.packageId, validatedData);
+      if (!pkg) {
+        return res.status(404).json({ message: "Package not found" });
+      }
+      res.json(pkg);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid package data", errors: error.errors });
+      }
+      res.status(400).json({ message: "Invalid package data" });
+    }
+  });
+
+  app.delete("/api/packages/:packageId", async (req, res) => {
+    try {
+      const success = await storage.deletePackage(req.params.packageId);
+      if (!success) {
+        return res.status(404).json({ message: "Package not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete package" });
     }
   });
 
