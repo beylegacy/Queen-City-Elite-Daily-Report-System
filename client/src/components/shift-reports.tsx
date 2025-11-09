@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Clock, Users, CheckCircle, AlertCircle } from "lucide-react";
-import type { DailyReport, GuestCheckin } from "@shared/schema";
+import type { DailyReport, GuestCheckin, ShiftNotes } from "@shared/schema";
 
 interface ShiftReportsProps {
   currentReport: DailyReport | null;
@@ -13,12 +13,20 @@ export default function ShiftReports({ currentReport }: ShiftReportsProps) {
     enabled: !!currentReport?.id,
   });
 
+  const { data: shiftNotes = [] } = useQuery<ShiftNotes[]>({
+    queryKey: ['/api/reports', currentReport?.id, 'notes'],
+    enabled: !!currentReport?.id,
+  });
+
   const getShiftData = (shift: string) => {
     const shiftCheckins = guestCheckins.filter(g => g.shift === shift);
+    const shiftNote = shiftNotes.find(note => note.shift === shift);
+    
     return {
       checkins: shiftCheckins.length,
       status: shiftCheckins.length > 0 ? 'Active' : 'Pending',
-      agent: currentReport?.agentName || 'Not assigned',
+      agent: shiftNote?.agentName || 'Not assigned',
+      shiftTime: shiftNote?.shiftTime || '',
     };
   };
 

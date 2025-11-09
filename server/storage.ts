@@ -363,6 +363,8 @@ export class DbStorage implements IStorage {
       const result = await db.update(shiftNotes)
         .set({
           content: insertNotes.content,
+          agentName: insertNotes.agentName,
+          shiftTime: insertNotes.shiftTime,
           updatedAt: new Date()
         })
         .where(eq(shiftNotes.id, existing.id))
@@ -373,6 +375,8 @@ export class DbStorage implements IStorage {
         reportId: insertNotes.reportId,
         content: insertNotes.content,
         shift: insertNotes.shift,
+        agentName: insertNotes.agentName,
+        shiftTime: insertNotes.shiftTime,
         updatedAt: new Date()
       }).returning();
       return result[0];

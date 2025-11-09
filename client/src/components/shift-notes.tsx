@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -50,6 +51,8 @@ Special Notes:
 export default function ShiftNotes({ currentReport }: ShiftNotesProps) {
   const [selectedShift, setSelectedShift] = useState<"1st" | "2nd" | "3rd">("1st");
   const [noteContent, setNoteContent] = useState("");
+  const [agentName, setAgentName] = useState("");
+  const [shiftTime, setShiftTime] = useState("");
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -80,16 +83,16 @@ export default function ShiftNotes({ currentReport }: ShiftNotesProps) {
     },
   });
 
-  // Load notes for selected shift
-  useState(() => {
+  // Load notes for selected shift whenever shiftNotes data or selectedShift changes
+  useEffect(() => {
     const currentShiftNotes = shiftNotes.find(note => note.shift === selectedShift);
     setNoteContent(currentShiftNotes?.content || "");
-  });
+    setAgentName(currentShiftNotes?.agentName || "");
+    setShiftTime(currentShiftNotes?.shiftTime || "");
+  }, [shiftNotes, selectedShift]);
 
   const handleShiftChange = (shift: "1st" | "2nd" | "3rd") => {
     setSelectedShift(shift);
-    const currentShiftNotes = shiftNotes.find(note => note.shift === shift);
-    setNoteContent(currentShiftNotes?.content || "");
   };
 
   const handleSaveNotes = () => {
@@ -106,6 +109,8 @@ export default function ShiftNotes({ currentReport }: ShiftNotesProps) {
       reportId: currentReport.id,
       content: noteContent,
       shift: selectedShift,
+      agentName: agentName || undefined,
+      shiftTime: shiftTime || undefined,
     });
   };
 
@@ -149,6 +154,36 @@ export default function ShiftNotes({ currentReport }: ShiftNotesProps) {
             <SelectItem value="3rd">3rd Shift (11PM - 7AM)</SelectItem>
           </SelectContent>
         </Select>
+      </div>
+
+      {/* Agent and Shift Time Information */}
+      <div className="bg-white border border-slate-200 rounded-xl p-4">
+        <h3 className="text-sm font-semibold text-slate-700 mb-4">Agent Information for {selectedShift} Shift</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label className="block text-sm font-medium text-slate-700 mb-2">Agent Name</Label>
+            <Input
+              value={agentName}
+              onChange={(e) => setAgentName(e.target.value)}
+              placeholder="Enter agent name"
+              className="w-full"
+              data-testid={`input-agent-name-${selectedShift}`}
+            />
+          </div>
+          <div>
+            <Label className="block text-sm font-medium text-slate-700 mb-2">Shift Time</Label>
+            <Select value={shiftTime} onValueChange={setShiftTime}>
+              <SelectTrigger className="w-full" data-testid={`select-shift-time-${selectedShift}`}>
+                <SelectValue placeholder="Select shift time" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7:00 am to 3:00 pm">7:00 AM to 3:00 PM</SelectItem>
+                <SelectItem value="3:00 pm to 11:00 pm">3:00 PM to 11:00 PM</SelectItem>
+                <SelectItem value="11:00 pm to 7:00 am">11:00 PM to 7:00 AM</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
       </div>
 
       {/* Notes Editor */}
