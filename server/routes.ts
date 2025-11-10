@@ -576,10 +576,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/properties/:propertyId/packages", async (req, res) => {
     try {
-      const validatedData = insertPackageSchema.parse({
+      // Convert date strings/numbers to Date objects before validation
+      const convertDate = (value: any) => {
+        if (value === null) return null;
+        if (value === undefined) return undefined;
+        if (value instanceof Date) return value; // Pass through existing Date objects
+        if (typeof value === 'number') return new Date(value); // Convert timestamps
+        if (typeof value === 'string' && value.length > 0) return new Date(value); // Convert ISO strings
+        return undefined;
+      };
+      
+      const bodyWithDates = {
         ...req.body,
-        propertyId: req.params.propertyId
-      });
+        propertyId: req.params.propertyId,
+        receivedDate: convertDate(req.body.receivedDate),
+        pickedUpDate: convertDate(req.body.pickedUpDate),
+        returnedDate: convertDate(req.body.returnedDate),
+      };
+      
+      const validatedData = insertPackageSchema.parse(bodyWithDates);
       const pkg = await storage.createPackage(validatedData);
       res.status(201).json(pkg);
     } catch (error) {
@@ -592,7 +607,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/packages/:packageId", async (req, res) => {
     try {
-      const validatedData = insertPackageSchema.partial().parse(req.body);
+      // Convert date strings/numbers to Date objects before validation, preserve null for clearing dates
+      const convertDate = (value: any) => {
+        if (value === null) return null;
+        if (value === undefined) return undefined;
+        if (value instanceof Date) return value; // Pass through existing Date objects
+        if (typeof value === 'number') return new Date(value); // Convert timestamps
+        if (typeof value === 'string' && value.length > 0) return new Date(value); // Convert ISO strings
+        return undefined;
+      };
+      
+      const bodyWithDates = {
+        ...req.body,
+        receivedDate: convertDate(req.body.receivedDate),
+        pickedUpDate: convertDate(req.body.pickedUpDate),
+        returnedDate: convertDate(req.body.returnedDate),
+      };
+      
+      const validatedData = insertPackageSchema.partial().parse(bodyWithDates);
       const pkg = await storage.updatePackage(req.params.packageId, validatedData);
       if (!pkg) {
         return res.status(404).json({ message: "Package not found" });
