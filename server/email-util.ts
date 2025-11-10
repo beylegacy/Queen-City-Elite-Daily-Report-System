@@ -13,27 +13,31 @@ export async function sendPasswordResetEmail(
   resetToken: string,
   username: string
 ): Promise<void> {
-  const resendApiKey = process.env.RESEND_API_KEY;
+  const smtpHost = process.env.SMTP_HOST;
+  const smtpPort = process.env.SMTP_PORT;
+  const smtpUser = process.env.SMTP_USER;
+  const smtpPass = process.env.SMTP_PASS;
+  const smtpFrom = process.env.SMTP_FROM;
 
-  if (!resendApiKey) {
-    console.error('RESEND_API_KEY is not configured');
+  if (!smtpHost || !smtpPort || !smtpUser || !smtpPass || !smtpFrom) {
+    console.error('SMTP configuration is incomplete');
     throw new Error('Email service is not configured');
   }
 
   const transporter = nodemailer.createTransport({
-    host: 'smtp.resend.com',
-    port: 465,
-    secure: true,
+    host: smtpHost,
+    port: parseInt(smtpPort, 10),
+    secure: parseInt(smtpPort, 10) === 465,
     auth: {
-      user: 'resend',
-      pass: resendApiKey,
+      user: smtpUser,
+      pass: smtpPass,
     },
   });
 
   const resetUrl = `${process.env.REPLIT_DOMAINS?.split(',')[0] || 'http://localhost:5000'}/reset-password?token=${resetToken}`;
 
   const mailOptions = {
-    from: 'Queen City Elite <noreply@queencityelite.com>',
+    from: smtpFrom,
     to: toEmail,
     subject: 'Password Reset Request - Queen City Elite Front Desk',
     html: `
