@@ -55,11 +55,18 @@ Preferred communication style: Simple, everyday language.
 - **Reporting Enhancements**: Updated PDF and email reports to include resident-specific package details and status.
 - **Package Status Tracking System**: Workflow based on package statuses, providing a complete audit trail and real-time summary dashboard.
 - **Shift Switching Protection**: Prevents overwriting of original report creator's details; agents can add to existing reports while preserving creator info. Shift times are managed via a dropdown with predefined options.
+- **Company Newsletter & Announcements** (November 2025):
+    - **Public Announcements Page**: Reverse chronological display with pinned announcements, search/filter by category, "NEW" badges for recent posts (7 days), category badges with icons, smart date formatting, HTML content rendering, mark-as-read functionality
+    - **Admin Editor**: Full CRUD operations for creating/editing/deleting announcements with draft/publish workflow, preview functionality, HTML content sanitization using sanitize-html library for XSS protection
+    - **Categories**: Company Update, Recognition, Policy Change, Event, Celebration, General (each with distinct icons and colors)
+    - **Security**: HTML sanitization in both POST and PATCH endpoints, admin-only access for management, proper authentication/authorization
+    - **User Experience**: Unread count badge in navigation with pulse animation, visual indicators for unread announcements, mobile-responsive design, skeleton loading states
+    - **Database**: PostgreSQL with announcements and announcement_reads tables, proper indexes for performance, unique constraint on read tracking
 - **Manager Dashboard**:
     - **Resident Directory**: Property-based resident management (apartment number, name, email, phone) with auto-fill for package entry. Supports bulk import via CSV/Excel with column mapping.
     - **Daily Task Templates**: Customizable, property-specific duty templates with shift assignments and display order.
     - **Agent Shift Assignments**: Managers can assign agents to specific shifts per property, enabling automatic agent name population in new reports based on current time and shift.
-- **API Endpoints**: Comprehensive RESTful APIs for resident management, duty templates, agent shifts, and authentication.
+- **API Endpoints**: Comprehensive RESTful APIs for resident management, duty templates, agent shifts, authentication, and announcements.
 
 ## External Dependencies
 
@@ -93,6 +100,7 @@ Preferred communication style: Simple, everyday language.
 - **Nodemailer**: SMTP email sending.
 - **PDFKit**: PDF document generation.
 - **Date-fns**: Date manipulation and formatting.
+- **Sanitize-HTML**: Server-side HTML sanitization for XSS protection.
 
 ### Development Tools
 - **Replit Integration**: Cartographer plugin.

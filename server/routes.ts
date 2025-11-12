@@ -7,6 +7,7 @@ import bcrypt from "bcrypt";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { z } from "zod";
+import sanitizeHtmlLib from "sanitize-html";
 import { 
   insertPropertySchema,
   insertDailyReportSchema,
@@ -18,7 +19,11 @@ import {
   insertResidentSchema,
   insertDutyTemplateSchema,
   insertAgentShiftAssignmentSchema,
-  insertPackageSchema
+  insertPackageSchema,
+  insertAnnouncementSchema,
+  type Announcement,
+  type InsertAnnouncement,
+  type User
 } from "@shared/schema";
 
 // Configure Passport Local Strategy
@@ -54,6 +59,35 @@ passport.deserializeUser(async (id: string, done) => {
     done(error);
   }
 });
+
+// Authentication Middleware
+function requireAuth(req: any, res: any, next: any) {
+  if (!req.user) {
+    return res.status(401).json({ message: "Not authenticated" });
+  }
+  next();
+}
+
+function requireAdmin(req: any, res: any, next: any) {
+  if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'manager')) {
+    return res.status(403).json({ message: "Admin access required" });
+  }
+  next();
+}
+
+// HTML Sanitization Utility
+function sanitizeHtml(dirty: string): string {
+  return sanitizeHtmlLib(dirty, {
+    allowedTags: ['p', 'br', 'b', 'i', 'em', 'strong', 'a', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote'],
+    allowedAttributes: {
+      'a': ['href', 'target', 'rel']
+    },
+    allowedSchemes: ['http', 'https', 'mailto'],
+    allowedSchemesByTag: {
+      a: ['http', 'https', 'mailto']
+    }
+  });
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
@@ -1037,6 +1071,148 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       res.status(500).json({ message: "Failed to import residents" });
+    }
+  });
+
+  // Announcement Routes
+  app.get("/api/announcements", async (req, res) => {
+    try {
+      const includeArchived = req.query.includeArchived === 'true';
+      const includeDrafts = req.query.includeDrafts === 'true';
+      
+      // Only admins and managers can view drafts
+      const user = req.user as User | undefined;
+      const canViewDrafts = includeDrafts && user && 
+        (user.role === 'admin' || user.role === 'manager');
+      
+      const announcements = await storage.getAnnouncements(
+        user?.id,
+        includeArchived,
+        canViewDrafts
+      );
+      
+      res.json(announcements);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch announcements" });
+    }
+  });
+
+  app.get("/api/announcements/unread-count", requireAuth, async (req, res) => {
+    try {
+      const user = req.user as User;
+      const count = await storage.getUnreadAnnouncementCount(user.id);
+      res.json({ count });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch unread count" });
+    }
+  });
+
+  app.get("/api/announcements/:id", async (req, res) => {
+    try {
+      const announcement = await storage.getAnnouncementById(req.params.id);
+      if (!announcement) {
+        return res.status(404).json({ message: "Announcement not found" });
+      }
+      res.json(announcement);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch announcement" });
+    }
+  });
+
+  app.post("/api/announcements", requireAdmin, async (req, res) => {
+    try {
+      const validatedData = insertAnnouncementSchema.parse(req.body);
+      
+      // Sanitize content
+      const sanitizedData: InsertAnnouncement = {
+        ...validatedData,
+        content: sanitizeHtml(validatedData.content)
+      };
+      
+      // Set publishedAt if isPublished is true but publishedAt is null
+      if (sanitizedData.isPublished && !sanitizedData.publishedAt) {
+        sanitizedData.publishedAt = new Date();
+      }
+      
+      const announcement = await storage.createAnnouncement(sanitizedData);
+      res.status(201).json(announcement);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation error",
+          errors: error.errors
+        });
+      }
+      res.status(400).json({ message: "Invalid announcement data" });
+    }
+  });
+
+  app.patch("/api/announcements/:id", requireAdmin, async (req, res) => {
+    try {
+      const validatedData = insertAnnouncementSchema.partial().parse(req.body);
+      
+      // Sanitize content if being updated
+      const sanitizedData: Partial<InsertAnnouncement> = { ...validatedData };
+      if (sanitizedData.content) {
+        sanitizedData.content = sanitizeHtml(sanitizedData.content);
+      }
+      
+      // Set publishedAt if isPublished is changing to true and publishedAt is null
+      if (sanitizedData.isPublished === true && !sanitizedData.publishedAt) {
+        sanitizedData.publishedAt = new Date();
+      }
+      
+      const announcement = await storage.updateAnnouncement(req.params.id, sanitizedData);
+      if (!announcement) {
+        return res.status(404).json({ message: "Announcement not found" });
+      }
+      res.json(announcement);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation error",
+          errors: error.errors
+        });
+      }
+      res.status(400).json({ message: "Invalid announcement data" });
+    }
+  });
+
+  app.delete("/api/announcements/:id", requireAdmin, async (req, res) => {
+    try {
+      const success = await storage.deleteAnnouncement(req.params.id);
+      if (!success) {
+        return res.status(404).json({ message: "Announcement not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete announcement" });
+    }
+  });
+
+  app.post("/api/announcements/:id/read", requireAuth, async (req, res) => {
+    try {
+      const user = req.user as User;
+      await storage.markAnnouncementAsRead(req.params.id, user.id);
+      res.json({ message: "Marked as read" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to mark announcement as read" });
+    }
+  });
+
+  app.post("/api/announcements/batch-read", requireAuth, async (req, res) => {
+    try {
+      const { announcementIds } = req.body;
+      
+      if (!Array.isArray(announcementIds)) {
+        return res.status(400).json({ message: "announcementIds must be an array" });
+      }
+      
+      const user = req.user as User;
+      await storage.markAnnouncementsAsRead(announcementIds, user.id);
+      res.json({ message: "Announcements marked as read" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to mark announcements as read" });
     }
   });
 

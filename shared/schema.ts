@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, boolean, timestamp, jsonb, pgEnum, index } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, boolean, timestamp, jsonb, pgEnum, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -7,6 +7,7 @@ export const packageStatusEnum = pgEnum("package_status", ["pending", "picked_up
 export const packageCarrierEnum = pgEnum("package_carrier", ["UPS", "FedEx", "USPS", "Amazon", "Other"]);
 export const packageSizeEnum = pgEnum("package_size", ["Small", "Medium", "Large", "Oversized"]);
 export const packageShiftEnum = pgEnum("package_shift", ["1st", "2nd", "3rd"]);
+export const announcementCategoryEnum = pgEnum("announcement_category", ["Company Update", "Recognition", "Policy Change", "Event", "Celebration", "General"]);
 
 export const properties = pgTable("properties", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -159,6 +160,37 @@ export const packages = pgTable("packages", {
   receivedDateIdx: index("packages_received_date_idx").on(table.receivedDate),
 }));
 
+export const announcements = pgTable("announcements", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  category: announcementCategoryEnum("category").notNull(),
+  content: text("content").notNull(),
+  author: text("author").notNull(),
+  imageUrl: text("image_url"),
+  isPinned: boolean("is_pinned").default(false),
+  isPublished: boolean("is_published").default(false),
+  publishedAt: timestamp("published_at"),
+  archivedAt: timestamp("archived_at"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).$onUpdate(() => new Date()),
+}, (table) => ({
+  publishedAtIdx: index("announcements_published_at_idx").on(table.publishedAt),
+  isPinnedIdx: index("announcements_is_pinned_idx").on(table.isPinned),
+  isPublishedIdx: index("announcements_is_published_idx").on(table.isPublished),
+  categoryIdx: index("announcements_category_idx").on(table.category),
+}));
+
+export const announcementReads = pgTable("announcement_reads", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  announcementId: varchar("announcement_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  readAt: timestamp("read_at").default(sql`CURRENT_TIMESTAMP`),
+}, (table) => ({
+  announcementIdIdx: index("announcement_reads_announcement_id_idx").on(table.announcementId),
+  userIdIdx: index("announcement_reads_user_id_idx").on(table.userId),
+  uniqueRead: uniqueIndex("announcement_reads_unique").on(table.announcementId, table.userId),
+}));
+
 // Insert schemas
 export const insertPropertySchema = createInsertSchema(properties).omit({ id: true });
 export const insertDailyReportSchema = createInsertSchema(dailyReports).omit({ id: true, createdAt: true });
@@ -174,6 +206,8 @@ export const insertResidentSchema = createInsertSchema(residents).omit({ id: tru
 export const insertAgentShiftAssignmentSchema = createInsertSchema(agentShiftAssignments).omit({ id: true, createdAt: true });
 export const insertPasswordResetTokenSchema = createInsertSchema(passwordResetTokens).omit({ id: true, createdAt: true, used: true });
 export const insertPackageSchema = createInsertSchema(packages).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertAnnouncementSchema = createInsertSchema(announcements).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertAnnouncementReadSchema = createInsertSchema(announcementReads).omit({ id: true, readAt: true });
 
 // Types
 export type Property = typeof properties.$inferSelect;
@@ -204,6 +238,10 @@ export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 export type InsertPasswordResetToken = z.infer<typeof insertPasswordResetTokenSchema>;
 export type Package = typeof packages.$inferSelect;
 export type InsertPackage = z.infer<typeof insertPackageSchema>;
+export type Announcement = typeof announcements.$inferSelect;
+export type InsertAnnouncement = z.infer<typeof insertAnnouncementSchema>;
+export type AnnouncementRead = typeof announcementReads.$inferSelect;
+export type InsertAnnouncementRead = z.infer<typeof insertAnnouncementReadSchema>;
 
 // Utility types
 export type ReportWithData = DailyReport & {

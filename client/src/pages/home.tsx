@@ -10,7 +10,7 @@ import PackageAudit from "@/components/package-audit";
 import DailyDuties from "@/components/daily-duties";
 import ShiftNotes from "@/components/shift-notes";
 import ReportsExport from "@/components/reports-export";
-import { Clock, Zap, LogIn } from "lucide-react";
+import { Clock, Zap, LogIn, Megaphone } from "lucide-react";
 import type { Property, DailyReport } from "@shared/schema";
 
 export default function Home() {
@@ -37,6 +37,10 @@ export default function Home() {
   const { data: report, refetch: refetchReport } = useQuery({
     queryKey: ['/api/reports/by-date', reportDate, selectedProperty],
     enabled: !!selectedProperty && !!reportDate,
+  });
+
+  const { data: unreadCountData } = useQuery<{ count: number }>({
+    queryKey: ['/api/announcements/unread-count'],
   });
 
   useEffect(() => {
@@ -73,6 +77,25 @@ export default function Home() {
               </p>
             </div>
             <div className="flex items-center gap-3">
+              <Link href="/announcements">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="bg-white/10 hover:bg-white/20 text-white border-white/30 min-h-[44px] touch-manipulation transition-all hover:scale-105 relative"
+                  data-testid="link-announcements"
+                >
+                  <Megaphone className="w-4 h-4 mr-2" />
+                  Company News
+                  {unreadCountData && unreadCountData.count > 0 && (
+                    <span 
+                      className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center animate-pulse"
+                      data-testid="badge-unread-count"
+                    >
+                      {unreadCountData.count > 9 ? '9+' : unreadCountData.count}
+                    </span>
+                  )}
+                </Button>
+              </Link>
               <Link href="/login">
                 <Button 
                   variant="outline" 
@@ -191,7 +214,7 @@ export default function Home() {
               </TabsContent>
 
               <TabsContent value="package-audit" className="mt-0">
-                <PackageAudit currentReport={currentReport} propertyId={selectedProperty} />
+                <PackageAudit propertyId={selectedProperty} propertyName={properties?.find(p => p.id === selectedProperty)?.name || null} />
               </TabsContent>
 
               <TabsContent value="daily-duties" className="mt-0">

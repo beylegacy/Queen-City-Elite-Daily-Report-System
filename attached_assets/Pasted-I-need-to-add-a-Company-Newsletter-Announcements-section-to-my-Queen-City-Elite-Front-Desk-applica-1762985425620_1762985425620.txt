@@ -1,0 +1,79 @@
+I need to add a Company Newsletter & Announcements section to my Queen City Elite Front Desk application. This feature should help build morale and trust by keeping all properties informed about company updates and important announcements.
+Requirements:
+1. Newsletter/Announcements Page:
+
+Create a dedicated page accessible from the main navigation
+Display announcements in reverse chronological order (newest first)
+Each announcement should include:
+
+Title/headline
+Date posted
+Category/type (e.g., Company Update, Recognition, Policy Change, Event, Celebration)
+Full announcement text with formatting support
+Author/posted by (e.g., "QCE Management" or specific person's name)
+Optional: attached image or photo
+
+
+
+2. Admin Panel for Creating Announcements:
+
+Secure admin-only section for creating and managing announcements
+Form fields for:
+
+Title
+Category dropdown
+Announcement text (with basic formatting options like bold, bullets, links)
+Image upload (optional)
+Date (auto-populate with current date, but allow editing for scheduling)
+Visibility toggle (draft vs. published)
+
+
+Ability to edit or delete existing announcements
+Preview function before publishing
+
+3. User Experience Features:
+
+Highlight new/unread announcements (perhaps with a "NEW" badge for posts from last 7 days)
+Archive older announcements (maybe after 90 days) but keep them accessible
+Search/filter functionality by category or date range
+Mobile-responsive design since front desk staff use various devices
+
+4. Visual Design:
+
+Use Queen City Elite branding colors
+Make it visually appealing and engaging
+Consider using icons for different announcement categories
+Ensure good readability with appropriate font sizes and spacing
+
+5. Additional Features to Consider:
+
+Email notification option when new announcements are posted (optional)
+Comment section for staff feedback (if appropriate)
+"Pinned" announcement feature for critical/ongoing information
+Counter showing number of new announcements since last login
+
+Technical Considerations:
+
+Store announcements in the database with appropriate schema
+Ensure proper authentication so only authorized users can create/edit
+All properties should see the same announcements (company-wide visibility)
+Optimize images for web to maintain performance
+Include timestamp tracking for created/modified dates
+
+Integration with Existing App:
+
+Add a navigation link in the main menu (e.g., "Company News" or "Announcements")
+Consider adding a notification badge on the nav link when there are new posts
+Ensure consistent styling with the existing Front Desk Daily Report System
+
+Example Use Cases:
+
+Announcing new hires or promotions
+Celebrating team achievements or milestones
+Sharing policy updates or procedural changes
+Promoting company events or team-building activities
+Recognizing outstanding performance from specific properties
+Sharing grant success or company growth news
+Holiday schedules or important dates
+
+Please implement this feature with clean, maintainable code and ensure it integrates smoothly with the existing application structure.

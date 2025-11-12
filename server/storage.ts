@@ -26,6 +26,10 @@ import {
   type InsertPasswordResetToken,
   type Package,
   type InsertPackage,
+  type Announcement,
+  type InsertAnnouncement,
+  type AnnouncementRead,
+  type InsertAnnouncementRead,
   users,
   properties,
   dailyReports,
@@ -38,7 +42,9 @@ import {
   dutyTemplates,
   agentShiftAssignments,
   passwordResetTokens,
-  packages
+  packages,
+  announcements,
+  announcementReads
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -134,6 +140,16 @@ export interface IStorage {
   
   // Bulk Resident Import
   bulkCreateResidents(residents: InsertResident[]): Promise<Resident[]>;
+  
+  // Announcements
+  getAnnouncements(userId?: string, includeArchived?: boolean, includeDrafts?: boolean): Promise<(Announcement & { isRead?: boolean })[]>;
+  getAnnouncementById(id: string): Promise<Announcement | undefined>;
+  createAnnouncement(announcement: InsertAnnouncement): Promise<Announcement>;
+  updateAnnouncement(id: string, announcement: Partial<InsertAnnouncement>): Promise<Announcement | undefined>;
+  deleteAnnouncement(id: string): Promise<boolean>;
+  markAnnouncementAsRead(announcementId: string, userId: string): Promise<void>;
+  markAnnouncementsAsRead(announcementIds: string[], userId: string): Promise<void>;
+  getUnreadAnnouncementCount(userId: string): Promise<number>;
 }
 
 export class DbStorage implements IStorage {
@@ -702,6 +718,127 @@ export class DbStorage implements IStorage {
       .values(residentsData)
       .returning();
     return result;
+  }
+
+  // Announcements
+  async getAnnouncements(userId?: string, includeArchived?: boolean, includeDrafts?: boolean): Promise<(Announcement & { isRead?: boolean })[]> {
+    const conditions = [];
+
+    if (!includeDrafts) {
+      conditions.push(eq(announcements.isPublished, true));
+    }
+
+    if (!includeArchived) {
+      conditions.push(sql`${announcements.archivedAt} IS NULL`);
+    }
+
+    if (!includeDrafts) {
+      conditions.push(
+        or(
+          lte(announcements.publishedAt, sql`NOW()`),
+          sql`${announcements.publishedAt} IS NULL`
+        )!
+      );
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+    
+    const results = await db
+      .select()
+      .from(announcements)
+      .where(whereClause)
+      .orderBy(desc(announcements.isPinned), desc(announcements.publishedAt));
+
+    if (!userId) {
+      return results;
+    }
+
+    const readRecords = await db
+      .select()
+      .from(announcementReads)
+      .where(eq(announcementReads.userId, userId));
+
+    const readAnnouncementIds = new Set(readRecords.map(r => r.announcementId));
+
+    return results.map(announcement => ({
+      ...announcement,
+      isRead: readAnnouncementIds.has(announcement.id)
+    }));
+  }
+
+  async getAnnouncementById(id: string): Promise<Announcement | undefined> {
+    const result = await db.select().from(announcements).where(eq(announcements.id, id)).limit(1);
+    return result[0];
+  }
+
+  async createAnnouncement(announcement: InsertAnnouncement): Promise<Announcement> {
+    const values: any = { ...announcement };
+    
+    if (values.isPublished && !values.publishedAt) {
+      values.publishedAt = new Date();
+    }
+
+    const result = await db.insert(announcements).values(values).returning();
+    return result[0];
+  }
+
+  async updateAnnouncement(id: string, announcement: Partial<InsertAnnouncement>): Promise<Announcement | undefined> {
+    const updateData: any = { ...announcement };
+    
+    if (announcement.isPublished === true && !announcement.publishedAt) {
+      const existing = await this.getAnnouncementById(id);
+      if (existing && !existing.publishedAt) {
+        updateData.publishedAt = new Date();
+      }
+    }
+
+    const result = await db.update(announcements)
+      .set(updateData)
+      .where(eq(announcements.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteAnnouncement(id: string): Promise<boolean> {
+    const result = await db.delete(announcements).where(eq(announcements.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async markAnnouncementAsRead(announcementId: string, userId: string): Promise<void> {
+    await db.execute(
+      sql`INSERT INTO announcement_reads (id, announcement_id, user_id) 
+          VALUES (gen_random_uuid(), ${announcementId}, ${userId}) 
+          ON CONFLICT (announcement_id, user_id) DO NOTHING`
+    );
+  }
+
+  async markAnnouncementsAsRead(announcementIds: string[], userId: string): Promise<void> {
+    for (const announcementId of announcementIds) {
+      await db.execute(
+        sql`INSERT INTO announcement_reads (id, announcement_id, user_id) 
+            VALUES (gen_random_uuid(), ${announcementId}, ${userId}) 
+            ON CONFLICT (announcement_id, user_id) DO NOTHING`
+      );
+    }
+  }
+
+  async getUnreadAnnouncementCount(userId: string): Promise<number> {
+    const result = await db
+      .select({ count: count() })
+      .from(announcements)
+      .where(
+        and(
+          eq(announcements.isPublished, true),
+          sql`${announcements.archivedAt} IS NULL`,
+          sql`NOT EXISTS (
+            SELECT 1 FROM announcement_reads 
+            WHERE announcement_reads.announcement_id = ${announcements.id} 
+            AND announcement_reads.user_id = ${userId}
+          )`
+        )
+      );
+    
+    return result[0]?.count || 0;
   }
 }
 
