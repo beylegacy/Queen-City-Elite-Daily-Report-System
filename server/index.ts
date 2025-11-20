@@ -1,5 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
+import { Pool } from "pg";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
@@ -7,10 +9,23 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Create PostgreSQL pool for session store
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
+
+// Configure session store with PostgreSQL
+const pgSession = connectPgSimple(session);
+const sessionStore = new pgSession({
+  pool,
+  createTableIfMissing: true,
+});
+
 // Configure session middleware
 // When accessing from external domains (replit.dev or replit.app), cookies must be configured properly
 const isReplitDomain = process.env.REPLIT_DEV_DOMAIN || process.env.REPL_SLUG;
 app.use(session({
+  store: sessionStore,
   secret: process.env.SESSION_SECRET || 'your-secret-key-change-this-in-production',
   resave: false,
   saveUninitialized: false,
