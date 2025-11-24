@@ -24,14 +24,17 @@ const sessionStore = new pgSession({
 // Configure session middleware
 // When accessing from external domains (replit.dev or replit.app), cookies must be configured properly
 const isReplitDomain = process.env.REPLIT_DEV_DOMAIN || process.env.REPL_SLUG;
+const isProduction = process.env.NODE_ENV === 'production';
+
 app.use(session({
   store: sessionStore,
   secret: process.env.SESSION_SECRET || 'your-secret-key-change-this-in-production',
   resave: false,
-  saveUninitialized: false,
+  saveUninitialized: true,
   cookie: {
-    // Replit serves over HTTPS even in dev mode, so secure should be true
-    secure: isReplitDomain ? true : process.env.NODE_ENV === 'production',
+    // Only set secure for actual HTTPS connections (production or Replit HTTPS domains)
+    // For localhost and HTTP connections, secure must be false
+    secure: isProduction && !process.env.REPLIT_DEV_DOMAIN ? true : false,
     httpOnly: true,
     sameSite: 'lax', // Allow cookies in cross-site navigation (important for external access)
     maxAge: 12 * 60 * 60 * 1000 // 12 hours default

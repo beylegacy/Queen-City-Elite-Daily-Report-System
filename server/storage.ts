@@ -49,6 +49,7 @@ import {
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq, and, or, ilike, desc, asc, lte, sql, count } from "drizzle-orm";
+import bcrypt from "bcrypt";
 
 export interface IStorage {
   // Properties
@@ -187,6 +188,74 @@ export class DbStorage implements IStorage {
           await db.insert(properties).values({ name, address: null, isActive: true });
         }
       }
+      
+      // Check if users already exist
+      const existingUsers = await db.select().from(users);
+      
+      if (existingUsers.length === 0) {
+        // Initialize default manager users with hashed password "Temp123456"
+        const defaultPassword = "Temp123456";
+        const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+        
+        const defaultUsers: InsertUser[] = [
+          {
+            username: "manager1",
+            email: "manager1@queencityelite.com",
+            passwordHash: hashedPassword,
+            fullName: "Manager One",
+            role: "manager",
+            requiresPasswordChange: true
+          },
+          {
+            username: "manager2",
+            email: "manager2@queencityelite.com",
+            passwordHash: hashedPassword,
+            fullName: "Manager Two",
+            role: "manager",
+            requiresPasswordChange: true
+          },
+          {
+            username: "manager3",
+            email: "manager3@queencityelite.com",
+            passwordHash: hashedPassword,
+            fullName: "Manager Three",
+            role: "manager",
+            requiresPasswordChange: true
+          },
+          {
+            username: "manager4",
+            email: "manager4@queencityelite.com",
+            passwordHash: hashedPassword,
+            fullName: "Manager Four",
+            role: "manager",
+            requiresPasswordChange: true
+          },
+          {
+            username: "manager5",
+            email: "manager5@queencityelite.com",
+            passwordHash: hashedPassword,
+            fullName: "Manager Five",
+            role: "manager",
+            requiresPasswordChange: true
+          }
+        ];
+        
+        for (const user of defaultUsers) {
+          try {
+            await db.insert(users).values(user);
+          } catch (err) {
+            // Skip if user already exists
+            console.log(`User ${user.username} already exists`);
+          }
+        }
+        
+        console.log('Default manager users created');
+        console.log('Default login credentials:');
+        console.log('Username: manager1, manager2, manager3, manager4, or manager5');
+        console.log('Password: Temp123456');
+        console.log('(You will be prompted to change your password on first login)');
+      }
+      
       this.initialized = true;
     } catch (error) {
       console.error('Error initializing default data:', error);
