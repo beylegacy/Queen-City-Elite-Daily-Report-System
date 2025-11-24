@@ -58,6 +58,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (username: string, password: string, rememberMe?: boolean) => {
     await loginMutation.mutateAsync({ username, password, rememberMe });
+    // Wait for user data to refetch after successful login
+    await queryClient.refetchQueries({ queryKey: ['/api/auth/me'] });
   };
 
   const logout = async () => {
