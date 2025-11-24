@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { LogOut, Lock, Settings, User, Plus, Pencil, Trash2, Upload, Clock } from "lucide-react";
+import { LogOut, Lock, Settings, User, Plus, Pencil, Trash2, Upload, Clock, Home } from "lucide-react";
 import { ResidentImporter } from "@/components/resident-importer";
 import { AgentShiftManager } from "@/components/agent-shift-manager";
 import type { Property, Resident, DutyTemplate } from "@shared/schema";
@@ -396,15 +396,26 @@ export default function Manager() {
             <h1 className="text-3xl font-bold text-slate-800">Manager Dashboard</h1>
             <p className="text-slate-600 mt-1">Queen City Elite LLC</p>
           </div>
-          <Button
-            onClick={handleLogout}
-            variant="outline"
-            className="min-h-[44px] touch-manipulation"
-            data-testid="button-logout"
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            Logout
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => setLocation("/")}
+              variant="outline"
+              className="min-h-[44px] touch-manipulation"
+              data-testid="button-home"
+            >
+              <Home className="w-4 h-4 mr-2" />
+              Home
+            </Button>
+            <Button
+              onClick={handleLogout}
+              variant="outline"
+              className="min-h-[44px] touch-manipulation"
+              data-testid="button-logout"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Logout
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
