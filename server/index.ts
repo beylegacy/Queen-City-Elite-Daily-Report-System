@@ -32,9 +32,9 @@ app.use(session({
   resave: false,
   saveUninitialized: true,
   cookie: {
-    // Only set secure for actual HTTPS connections (production or Replit HTTPS domains)
-    // For localhost and HTTP connections, secure must be false
-    secure: isProduction && !process.env.REPLIT_DEV_DOMAIN ? true : false,
+    // Replit always uses HTTPS for published apps and dev domains
+    // Only localhost needs secure: false
+    secure: isReplitDomain ? true : false,
     httpOnly: true,
     sameSite: 'lax', // Allow cookies in cross-site navigation (important for external access)
     maxAge: 12 * 60 * 60 * 1000 // 12 hours default
