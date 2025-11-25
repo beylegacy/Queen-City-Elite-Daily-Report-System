@@ -12,10 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { LogOut, Lock, Settings, User, Plus, Pencil, Trash2, Upload, Clock, Home } from "lucide-react";
+import { LogOut, Lock, Settings, User, Plus, Pencil, Trash2, Upload, Clock, Home, Megaphone } from "lucide-react";
 import { ResidentImporter } from "@/components/resident-importer";
 import { AgentShiftManager } from "@/components/agent-shift-manager";
-import type { Property, Resident, DutyTemplate } from "@shared/schema";
+import type { Property, Resident, DutyTemplate, Announcement } from "@shared/schema";
 
 export default function Manager() {
   const [, setLocation] = useLocation();
@@ -48,6 +48,12 @@ export default function Manager() {
     shift: "1st",
   });
 
+  // Announcements state
+  const [announcementTitle, setAnnouncementTitle] = useState("");
+  const [announcementContent, setAnnouncementContent] = useState("");
+  const [announcementCategory, setAnnouncementCategory] = useState("General");
+  const [isPublishing, setIsPublishing] = useState(false);
+
   useEffect(() => {
     if (!isLoading && !user) {
       setLocation("/login");
@@ -75,6 +81,18 @@ export default function Manager() {
   const { data: templates = [], isLoading: loadingTemplates } = useQuery<DutyTemplate[]>({
     queryKey: ['/api/duty-templates', selectedProperty],
     enabled: !!selectedProperty,
+  });
+
+  // Fetch announcements
+  const { data: announcements = [] } = useQuery<Announcement[]>({
+    queryKey: ['/api/announcements', 'admin', { includeDrafts: true }],
+    queryFn: async () => {
+      const params = new URLSearchParams({ includeDrafts: 'true' });
+      const res = await fetch(`/api/announcements?${params}`);
+      if (!res.ok) throw new Error('Failed to fetch announcements');
+      return res.json();
+    },
+    enabled: !!user && (user.role === 'admin' || user.role === 'manager'),
   });
 
   // Create resident mutation
@@ -212,6 +230,60 @@ export default function Manager() {
       toast({
         title: "Error",
         description: "Failed to delete task template",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Create announcement mutation
+  const createAnnouncementMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/announcements", {
+        title: announcementTitle,
+        content: announcementContent,
+        category: announcementCategory,
+        author: user?.fullName || "Manager",
+        isPublished: true,
+        publishedAt: new Date(),
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/announcements'] });
+      setAnnouncementTitle("");
+      setAnnouncementContent("");
+      setAnnouncementCategory("General");
+      toast({
+        title: "Success",
+        description: "Announcement posted successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to post announcement",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete announcement mutation
+  const deleteAnnouncementMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiRequest("DELETE", `/api/announcements/${id}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/announcements'] });
+      toast({
+        title: "Success",
+        description: "Announcement deleted successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete announcement",
         variant: "destructive",
       });
     },
@@ -483,7 +555,136 @@ export default function Manager() {
           </CardContent>
         </Card>
 
-        {selectedProperty && (
+        <Tabs defaultValue="announcements" className="w-full mb-6">
+          <TabsList className="grid w-full grid-cols-2 mb-4">
+            <TabsTrigger value="announcements" data-testid="tab-announcements">
+              <Megaphone className="w-4 h-4 mr-2" />
+              Company News
+            </TabsTrigger>
+            <TabsTrigger value="properties" data-testid="tab-properties">
+              <Settings className="w-4 h-4 mr-2" />
+              Property Management
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="announcements" className="mt-0">
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>Post Company News</CardTitle>
+                <CardDescription>Share updates and announcements with all front desk employees</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="announcement-title">Title</Label>
+                  <Input
+                    id="announcement-title"
+                    placeholder="e.g., New Parking Policy"
+                    value={announcementTitle}
+                    onChange={(e) => setAnnouncementTitle(e.target.value)}
+                    data-testid="input-announcement-title"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="announcement-category">Category</Label>
+                  <Select value={announcementCategory} onValueChange={setAnnouncementCategory}>
+                    <SelectTrigger data-testid="select-announcement-category">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Company Update">Company Update</SelectItem>
+                      <SelectItem value="Recognition">Recognition</SelectItem>
+                      <SelectItem value="Policy Change">Policy Change</SelectItem>
+                      <SelectItem value="Event">Event</SelectItem>
+                      <SelectItem value="Celebration">Celebration</SelectItem>
+                      <SelectItem value="General">General</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="announcement-content">Message</Label>
+                  <Input
+                    id="announcement-content"
+                    placeholder="Type your announcement here..."
+                    value={announcementContent}
+                    onChange={(e) => setAnnouncementContent(e.target.value)}
+                    data-testid="input-announcement-content"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => createAnnouncementMutation.mutate()}
+                    disabled={!announcementTitle || !announcementContent || createAnnouncementMutation.isPending}
+                    data-testid="button-post-announcement"
+                  >
+                    Post Announcement
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Announcements</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {announcements.filter(a => a.isPublished).length === 0 ? (
+                  <p className="text-slate-600 text-sm">No announcements yet. Create one above!</p>
+                ) : (
+                  <div className="space-y-4">
+                    {announcements
+                      .filter(a => a.isPublished)
+                      .sort((a, b) => new Date(b.publishedAt || 0).getTime() - new Date(a.publishedAt || 0).getTime())
+                      .map((announcement) => (
+                        <div key={announcement.id} className="flex justify-between items-start pb-4 border-b last:border-0">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="font-semibold text-slate-900">{announcement.title}</h4>
+                              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                {announcement.category}
+                              </span>
+                            </div>
+                            <p className="text-sm text-slate-700">{announcement.content}</p>
+                            <p className="text-xs text-slate-500 mt-2">Posted by {announcement.author}</p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => deleteAnnouncementMutation.mutate(announcement.id)}
+                            data-testid={`button-delete-announcement-${announcement.id}`}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="properties" className="mt-0">
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>Select Property</CardTitle>
+                <CardDescription>Choose a property to manage residents and task templates</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Select value={selectedProperty} onValueChange={setSelectedProperty}>
+                  <SelectTrigger data-testid="select-property">
+                    <SelectValue placeholder="Select a property" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {properties.map((property) => (
+                      <SelectItem key={property.id} value={property.id}>
+                        {property.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </CardContent>
+            </Card>
+
+            {selectedProperty && (
           <Tabs defaultValue="residents" className="w-full">
             <TabsList className="grid w-full grid-cols-4 mb-4">
               <TabsTrigger value="residents" data-testid="tab-residents">
@@ -831,6 +1032,8 @@ export default function Manager() {
             </TabsContent>
           </Tabs>
         )}
+          </TabsContent>
+        </Tabs>
       </div>
 
       <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
