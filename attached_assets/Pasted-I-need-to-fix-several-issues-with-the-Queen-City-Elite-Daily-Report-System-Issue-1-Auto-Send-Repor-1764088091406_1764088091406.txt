@@ -1,0 +1,41 @@
+I need to fix several issues with the Queen City Elite Daily Report System:
+Issue 1: Auto-Send Report Not Working
+The shift report is not automatically sending at the end of each shift. Please review and fix the auto-send functionality so that:
+
+Reports are automatically emailed to designated managers when a shift ends (or at scheduled times: 7am, 3pm, 11pm)
+Include a manual "Send Report" button as a backup
+Confirm the email configuration is correct and test the send function
+
+Issue 2: Shift Handoff/Reset Not Working
+When a new shift starts, the previous shift's information is still displayed and the new shift person cannot start fresh. Please fix so that:
+
+When a shift ends (either by time or manual close), the system archives that shift's data
+A new shift automatically initializes with a clean slate for the incoming employee
+Previous shift data is saved/stored but cleared from the active entry form
+The new shift person can enter their name and start logging fresh while still having access to view the previous shift's notes if needed for continuity
+
+Issue 3: "View Details" Button Not Working on Home Page
+The home page shows 1st, 2nd, and 3rd shift sections, but clicking "View Details" does nothing. Please fix so that:
+
+Clicking "View Details" opens/expands to show that shift's logged information
+If no data has been entered yet, display a message like "No activity logged for this shift yet"
+Ensure the buttons are properly linked to pull the correct shift data
+
+Issue 4: Add Home Navigation Icon to Manager Login Page
+Once a manager logs in, there's no way to navigate back to the home/dashboard. Please add:
+
+A home icon (house icon) in the header/navigation area of the manager pages
+Clicking it should return the manager to the main dashboard
+Make sure it's visible on all manager-accessible pages
+
+Issue 5: Link Manager Login to Company News Section
+Create functionality so managers (or designated users) can post company updates and newsletters:
+
+Add a "Company News" or "Announcements" section accessible from the manager dashboard
+Allow managers to create, edit, and delete news posts/updates
+Display these announcements on the front desk employee's home screen so they see company news when they log in
+Include fields for: Title, Message Body, Date Posted, Posted By
+Show newest announcements at the top
+
+
+Let me know if you need me to clarify any of these requirements or break them into smaller tasks!
