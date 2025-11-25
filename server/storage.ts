@@ -247,7 +247,6 @@ export class DbStorage implements IStorage {
         managerCredentials.forEach(cred => {
           console.log(`Username: ${cred.username}`);
           console.log(`Email: ${cred.email}`);
-          console.log(`Temporary Password: ${cred.password}`);
           console.log('---');
         });
       }
