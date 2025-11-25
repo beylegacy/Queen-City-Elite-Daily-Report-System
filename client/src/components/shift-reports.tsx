@@ -1,6 +1,9 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Clock, Users, CheckCircle, AlertCircle, Package } from "lucide-react";
+import { Clock, Users, CheckCircle, AlertCircle, Package, X } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { DailyReport, GuestCheckin, ShiftNotes } from "@shared/schema";
 
 interface ShiftReportsProps {
@@ -8,6 +11,7 @@ interface ShiftReportsProps {
 }
 
 export default function ShiftReports({ currentReport }: ShiftReportsProps) {
+  const [expandedShift, setExpandedShift] = useState<string | null>(null);
   const { data: guestCheckins = [] } = useQuery<GuestCheckin[]>({
     queryKey: ['/api/reports', currentReport?.id, 'checkins'],
     enabled: !!currentReport?.id,
@@ -158,6 +162,7 @@ export default function ShiftReports({ currentReport }: ShiftReportsProps) {
                   </span>
                 </div>
                 <Button 
+                  onClick={() => setExpandedShift(shift.key)}
                   className={`w-full mt-4 ${shift.badgeColor} hover:opacity-90 text-white py-2 px-4 rounded-lg text-sm font-semibold transition-colors`}
                   data-testid={`button-view-details-${shift.key}`}
                 >
@@ -169,6 +174,118 @@ export default function ShiftReports({ currentReport }: ShiftReportsProps) {
           );
         })}
       </div>
+
+      {/* Shift Details Modal */}
+      <Dialog open={!!expandedShift} onOpenChange={() => setExpandedShift(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          {expandedShift && (() => {
+            const shift = shifts.find(s => s.key === expandedShift);
+            const shiftData = getShiftData(expandedShift);
+            const shiftCheckins = guestCheckins.filter(g => g.shift === expandedShift);
+            const shiftNote = shiftNotes.find(note => note.shift === expandedShift);
+            
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <span className={`${shift?.badgeColor} text-white px-3 py-1 rounded-full text-sm`}>
+                      {shift?.name}
+                    </span>
+                    <span className="text-slate-600 text-sm font-normal">{shift?.time}</span>
+                  </DialogTitle>
+                  <DialogDescription>
+                    Detailed information for this shift
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-4 py-4">
+                  {/* Agent & Status Info */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base">Shift Information</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-xs text-slate-600 font-medium mb-1">Agent Name</p>
+                          <p className="text-sm font-semibold text-slate-900">{shiftData.agent}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-600 font-medium mb-1">Status</p>
+                          <div className="flex items-center gap-2">
+                            {shiftData.status === 'Active' && <CheckCircle className="w-4 h-4 text-green-600" />}
+                            <span className={`text-sm font-semibold ${shiftData.status === 'Active' ? 'text-green-600' : 'text-slate-600'}`}>
+                              {shiftData.status}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Guest Check-ins */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Users className="w-4 h-4" />
+                        Guest Check-ins ({shiftCheckins.length})
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {shiftCheckins.length === 0 ? (
+                        <p className="text-sm text-slate-600">No check-ins logged for this shift yet</p>
+                      ) : (
+                        <div className="space-y-3">
+                          {shiftCheckins.map((checkin, idx) => (
+                            <div key={idx} className="flex justify-between items-start pb-3 border-b last:border-0">
+                              <div>
+                                <p className="font-medium text-sm text-slate-900">{checkin.guestName}</p>
+                                <p className="text-xs text-slate-600">Apt: {checkin.apartment}</p>
+                              </div>
+                              <p className="text-xs text-slate-600">{checkin.checkInTime}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Shift Notes */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base">Notes</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {shiftNote?.content ? (
+                        <p className="text-sm text-slate-700 whitespace-pre-wrap">{shiftNote.content}</p>
+                      ) : (
+                        <p className="text-sm text-slate-600">No notes for this shift</p>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Package Summary */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Package className="w-4 h-4" />
+                        Packages ({shiftData.packages})
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {shiftData.packages > 0 ? (
+                        <p className="text-sm text-slate-700">Total packages received: {shiftData.packages}</p>
+                      ) : (
+                        <p className="text-sm text-slate-600">No packages logged for this shift</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
