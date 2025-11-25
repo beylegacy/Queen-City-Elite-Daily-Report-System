@@ -1,0 +1,147 @@
+I need to fix several issues with my Queen City Elite Daily Report System. Please analyze my codebase and implement the following fixes:
+
+ISSUE 1: Auto-Send Report Not Working
+Current State: I have a manual email endpoint at POST /api/reports/:id/send-email (in routes.ts around line 818), but reports don't automatically send at shift end.
+Required Fix:
+
+Add a scheduled task using node-cron to automatically send reports at shift end times:
+
+7:00 AM (end of 3rd shift / 11pm-7am)
+3:00 PM (end of 1st shift / 7am-3pm)
+11:00 PM (end of 2nd shift / 3pm-11pm)
+
+
+The scheduled task should:
+
+Find all active reports for the ending shift across all properties
+Call the existing email sending logic for each
+Mark the shift portion of the report as "sent"
+
+
+Add this to server/index.ts or create a new server/scheduler.ts file:
+
+typescriptimport cron from 'node-cron';
+
+// Schedule auto-send at shift end times
+cron.schedule('0 7 * * *', () => { /* auto-send 3rd shift reports */ });
+cron.schedule('0 15 * * *', () => { /* auto-send 1st shift reports */ });
+cron.schedule('0 23 * * *', () => { /* auto-send 2nd shift reports */ });
+
+Also add a manual "Send Report Now" button in the front desk UI as a backup.
+
+
+ISSUE 2: Shift Handoff/Reset Not Working
+Current State: When a new shift starts, the previous shift's data remains in the form. The daily report is tied to a date/property but doesn't distinguish between shifts properly.
+Required Fix:
+
+Modify the daily report data model to better track shift status:
+
+Add a currentShift field to track which shift is active
+Add shiftStatus object to track each shift's state (active, completed, sent)
+
+
+Create new API endpoints:
+
+POST /api/reports/:id/end-shift - Archives current shift data and prepares for next shift
+GET /api/reports/current/:propertyId - Returns the active shift's report, auto-creating if needed
+
+
+The shift handoff logic should:
+
+Save/archive the outgoing shift's data (agent name, notes, time logged)
+Clear the form for the incoming shift agent
+Auto-populate the new agent name based on agentShiftAssignments table and current time
+Preserve access to previous shift notes for continuity (read-only)
+
+
+Update the front desk form to:
+
+Detect current shift based on time (7am-3pm = 1st, 3pm-11pm = 2nd, 11pm-7am = 3rd)
+Show "Start New Shift" button if the current shift doesn't match the loaded data
+Display previous shift's notes in a collapsed/read-only section
+
+
+
+
+ISSUE 3: "View Details" Button Not Working on Home Page
+Current State: The home page shows 1st, 2nd, and 3rd shift cards, but clicking "View Details" does nothing.
+Required Fix:
+
+Check the home page component (likely in client/src/components/ or client/src/pages/)
+Ensure the "View Details" button has a proper onClick handler
+The handler should either:
+
+Expand an accordion/collapsible section showing that shift's data
+Navigate to a detail view for that shift
+Open a modal with shift details
+
+
+If no data exists for a shift, display: "No activity logged for this shift yet"
+The data should be fetched from:
+
+GET /api/reports/:reportId/checkins for guest check-ins
+GET /api/reports/:reportId/packages for packages
+GET /api/reports/:reportId/notes for shift notes
+
+
+
+
+ISSUE 4: Add Home Navigation Icon to Manager Pages
+Current State: Once a manager logs in, there's no way to navigate back to the dashboard.
+Required Fix:
+
+Find the manager layout/header component
+Add a home icon (use Lucide React's Home icon) in the navigation header
+The icon should link back to the manager dashboard (/manager or /dashboard)
+Ensure it appears on ALL manager-accessible pages
+Example implementation:
+
+tsximport { Home } from "lucide-react";
+import { Link } from "wouter";
+
+<Link href="/manager">
+  <Button variant="ghost" size="icon">
+    <Home className="h-5 w-5" />
+  </Button>
+</Link>
+
+ISSUE 5: Connect Company News to Manager Dashboard
+Current State: I already have Announcement API routes built (GET/POST/PATCH/DELETE at /api/announcements), but there's no UI for managers to create announcements or for front desk staff to see them.
+Required Fix:
+Part A - Manager Announcement Interface:
+
+Create a new component AnnouncementManager.tsx for the manager dashboard
+It should allow managers to:
+
+View all announcements (published and drafts)
+Create new announcements with: Title, Content (rich text), Priority (normal/high/urgent), Category
+Edit existing announcements
+Publish/unpublish announcements
+Archive old announcements
+
+
+Add this component to the manager dashboard navigation
+
+Part B - Front Desk Announcement Display:
+
+Create an AnnouncementBanner.tsx or AnnouncementFeed.tsx component
+Display on the front desk home screen showing:
+
+Active/published announcements
+Newest first
+Visual distinction for high priority items
+"Mark as read" functionality (API already exists at POST /api/announcements/:id/read)
+
+
+Show unread count badge in the navigation (API exists at GET /api/announcements/unread-count)
+
+
+Additional Context:
+
+The Announcement schema and API routes are already fully implemented in routes.ts lines 1077-1217
+Using React Query for data fetching
+Using shadcn/ui components
+Using Lucide React for icons
+Using Tailwind CSS for styling
+
+Please implement these fixes and let me know if you need any additional files or clarification!

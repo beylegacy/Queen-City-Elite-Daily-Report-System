@@ -22,6 +22,8 @@ export const dailyReports = pgTable("daily_reports", {
   reportDate: text("report_date").notNull(), // YYYY-MM-DD format
   agentName: text("agent_name").notNull(),
   shiftTime: text("shift_time"),
+  currentShift: text("current_shift"), // "1st", "2nd", "3rd" - track which shift is active
+  shiftStatusJson: jsonb("shift_status_json"), // { "1st": { sent: false }, "2nd": { sent: false }, "3rd": { sent: false } }
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 

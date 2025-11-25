@@ -917,6 +917,136 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Shift Handoff Endpoints
+  app.post("/api/reports/:id/end-shift", async (req, res) => {
+    try {
+      const report = await storage.getDailyReport(req.params.id);
+      if (!report) {
+        return res.status(404).json({ message: "Report not found" });
+      }
+
+      const currentShift = report.currentShift || 'unknown';
+      const shiftStatus = (report.shiftStatusJson as any) || {};
+      
+      // Mark current shift as completed
+      const updatedStatus = {
+        ...shiftStatus,
+        [currentShift]: { ...(shiftStatus[currentShift] || {}), completed: true, completedAt: new Date().toISOString() }
+      };
+
+      // Update report to mark shift as ended
+      const updated = await storage.updateDailyReport(req.params.id, {
+        shiftStatusJson: updatedStatus
+      });
+
+      res.json({ message: "Shift ended successfully", report: updated });
+    } catch (error) {
+      console.error('Error ending shift:', error);
+      res.status(500).json({ message: "Failed to end shift" });
+    }
+  });
+
+  // Get current shift's active report or create one
+  app.get("/api/reports/current/:propertyId", async (req, res) => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const hour = new Date().getHours();
+      
+      // Determine current shift based on time
+      let currentShift: '1st' | '2nd' | '3rd';
+      if (hour >= 7 && hour < 15) currentShift = '1st';
+      else if (hour >= 15 && hour < 23) currentShift = '2nd';
+      else currentShift = '3rd';
+
+      // Get existing report
+      let report = await storage.getDailyReportByDateAndProperty(today, req.params.propertyId);
+
+      // If no report exists or shift mismatch, create/update for current shift
+      if (!report) {
+        report = await storage.createDailyReport({
+          propertyId: req.params.propertyId,
+          reportDate: today,
+          agentName: "Agent",
+          shiftTime: currentShift === '1st' ? '7:00 am to 3:00 pm' : currentShift === '2nd' ? '3:00 pm to 11:00 pm' : '11:00 pm to 7:00 am',
+          currentShift: currentShift
+        } as any);
+      } else if (report.currentShift !== currentShift) {
+        // Update to current shift if different
+        report = await storage.updateDailyReport(report.id, {
+          currentShift: currentShift,
+          shiftTime: currentShift === '1st' ? '7:00 am to 3:00 pm' : currentShift === '2nd' ? '3:00 pm to 11:00 pm' : '11:00 pm to 7:00 am'
+        });
+      }
+
+      res.json(report);
+    } catch (error) {
+      console.error('Error getting current report:', error);
+      res.status(500).json({ message: "Failed to get current report" });
+    }
+  });
+
+  // Send report now (manual backup)
+  app.post("/api/reports/:id/send-now", async (req, res) => {
+    try {
+      const report = await storage.getDailyReportWithData(req.params.id);
+      if (!report) {
+        return res.status(404).json({ message: "Report not found" });
+      }
+
+      // Call the existing send-email endpoint logic
+      const emailSettings = await storage.getEmailSettings(report.propertyId);
+      if (!emailSettings) {
+        return res.status(400).json({ message: "Email settings not configured for this property" });
+      }
+
+      const property = await storage.getProperty(report.propertyId);
+
+      // Create transporter
+      const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST || 'smtp.gmail.com',
+        port: parseInt(process.env.SMTP_PORT || '587'),
+        secure: false,
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS
+        }
+      });
+
+      const activePackages = report.packageAudits.filter(p => p.status === 'active');
+      const pickedUpPackages = report.packageAudits.filter(p => p.status === 'picked_up');
+      const returnedPackages = report.packageAudits.filter(p => p.status === 'returned_to_sender');
+
+      const htmlContent = `
+        <h2>Front Desk Daily Report</h2>
+        <p><strong>Property:</strong> ${property?.name || 'Unknown'}</p>
+        <p><strong>Date:</strong> ${report.reportDate}</p>
+        <p><strong>Agent:</strong> ${report.agentName}</p>
+        <p><strong>Manually Sent</strong></p>
+        
+        <h3>Guest Check-ins (${report.guestCheckins.length})</h3>
+        <ul>
+          ${report.guestCheckins.length === 0 ? '<li>No check-ins recorded</li>' : report.guestCheckins.map(guest => 
+            `<li>${guest.guestName} - Apt ${guest.apartment} at ${guest.checkInTime}</li>`
+          ).join('')}
+        </ul>
+        
+        <h3>Total Packages: ${report.packageAudits.length}</h3>
+      `;
+
+      await transporter.sendMail({
+        from: process.env.SMTP_USER,
+        to: emailSettings.recipients as string[],
+        subject: `[MANUAL] Daily Report - ${property?.name} - ${report.reportDate}`,
+        html: htmlContent
+      });
+
+      res.json({ message: "Report sent manually" });
+    } catch (error) {
+      console.error('Error sending report:', error);
+      res.status(500).json({ message: "Failed to send report" });
+    }
+  });
+
   // Resident Routes
   app.get("/api/residents/:propertyId", async (req, res) => {
     try {

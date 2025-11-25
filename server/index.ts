@@ -4,6 +4,7 @@ import connectPgSimple from "connect-pg-simple";
 import { Pool } from "pg";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { initializeScheduler } from "./scheduler";
 
 const app = express();
 app.use(express.json());
@@ -72,6 +73,9 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Initialize scheduler for auto-sending reports
+  initializeScheduler();
+
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

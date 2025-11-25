@@ -22,6 +22,15 @@ export default function Home() {
   const [agentName, setAgentName] = useState<string>("");
   const [shiftTime, setShiftTime] = useState<string>("");
   const [currentReport, setCurrentReport] = useState<DailyReport | null>(null);
+  const [showShiftHandoffAlert, setShowShiftHandoffAlert] = useState(false);
+
+  // Helper to determine current shift
+  const getCurrentShift = (): '1st' | '2nd' | '3rd' => {
+    const hour = new Date().getHours();
+    if (hour >= 7 && hour < 15) return '1st';
+    if (hour >= 15 && hour < 23) return '2nd';
+    return '3rd';
+  };
 
   // Update clock every second
   useEffect(() => {
@@ -45,13 +54,23 @@ export default function Home() {
 
   useEffect(() => {
     if (report && typeof report === 'object' && 'id' in report && 'agentName' in report) {
-      setCurrentReport(report as DailyReport);
-      setAgentName((report as DailyReport).agentName || "");
-      setShiftTime((report as DailyReport).shiftTime || "");
+      const reportData = report as DailyReport;
+      setCurrentReport(reportData);
+      setAgentName(reportData.agentName || "");
+      setShiftTime(reportData.shiftTime || "");
+
+      // Check if shift changed
+      const reportShift = (reportData as any).currentShift;
+      const currentShift = getCurrentShift();
+      if (reportShift && reportShift !== currentShift && selectedProperty) {
+        setShowShiftHandoffAlert(true);
+      } else {
+        setShowShiftHandoffAlert(false);
+      }
     } else {
       setCurrentReport(null);
     }
-  }, [report]);
+  }, [report, selectedProperty]);
 
   return (
     <div className="min-h-screen p-4 lg:p-6 bg-slate-50">
