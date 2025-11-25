@@ -55,6 +55,22 @@ Preferred communication style: Simple, everyday language.
 - **Reporting Enhancements**: Updated PDF and email reports to include resident-specific package details and status.
 - **Package Status Tracking System**: Workflow based on package statuses, providing a complete audit trail and real-time summary dashboard.
 - **Shift Switching Protection**: Prevents overwriting of original report creator's details; agents can add to existing reports while preserving creator info. Shift times are managed via a dropdown with predefined options.
+- **Auto-Send Report Scheduling** (November 2025):
+    - **Node-Cron Integration**: Automated report sending at shift end times using node-cron
+    - **Scheduled Tasks**: 
+      - 7:00 AM - Auto-send 3rd shift reports (11pm-7am)
+      - 3:00 PM - Auto-send 1st shift reports (7am-3pm)
+      - 11:00 PM - Auto-send 2nd shift reports (3pm-11pm)
+    - **Shift Tracking**: Reports track currentShift and shiftStatus to prevent duplicate sends
+    - **Email Recipients**: Uses existing email settings configuration for each property
+    - **Manual Backup**: "/api/reports/:id/send-now" endpoint for manual report sending
+- **Shift Handoff Management** (November 2025):
+    - **Automatic Shift Detection**: System automatically detects current shift based on time (7am-3pm = 1st, 3pm-11pm = 2nd, 11pm-7am = 3rd)
+    - **Shift Status Tracking**: Reports track individual shift statuses with completion timestamps
+    - **End Shift API**: POST /api/reports/:id/end-shift archives shift data and marks as completed
+    - **Current Report Endpoint**: GET /api/reports/current/:propertyId retrieves or creates current shift's report
+    - **Shift Change Detection**: Frontend detects when shift time changes and alerts agents for handoff
+    - **Database Fields**: currentShift (tracks active shift) and shiftStatusJson (tracks completion status per shift)
 - **Company Newsletter & Announcements** (November 2025):
     - **Public Announcements Page**: Reverse chronological display with pinned announcements, search/filter by category, "NEW" badges for recent posts (7 days), category badges with icons, smart date formatting, HTML content rendering, mark-as-read functionality
     - **Admin Editor**: Full CRUD operations for creating/editing/deleting announcements with draft/publish workflow, preview functionality, HTML content sanitization using sanitize-html library for XSS protection
@@ -101,6 +117,7 @@ Preferred communication style: Simple, everyday language.
 - **PDFKit**: PDF document generation.
 - **Date-fns**: Date manipulation and formatting.
 - **Sanitize-HTML**: Server-side HTML sanitization for XSS protection.
+- **node-cron**: Task scheduling for automated report sending at shift end times.
 
 ### Development Tools
 - **Replit Integration**: Cartographer plugin.
