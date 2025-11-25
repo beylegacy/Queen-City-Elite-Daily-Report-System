@@ -193,52 +193,43 @@ export class DbStorage implements IStorage {
       const existingUsers = await db.select().from(users);
       
       if (existingUsers.length === 0) {
-        // Initialize default manager users with hashed password "Temp123456"
-        const defaultPassword = "Temp123456";
-        const hashedPassword = await bcrypt.hash(defaultPassword, 10);
-        
-        const defaultUsers: InsertUser[] = [
-          {
-            username: "manager1",
-            email: "manager1@queencityelite.com",
-            passwordHash: hashedPassword,
-            fullName: "Manager One",
-            role: "manager",
-            requiresPasswordChange: true
-          },
-          {
-            username: "manager2",
-            email: "manager2@queencityelite.com",
-            passwordHash: hashedPassword,
-            fullName: "Manager Two",
-            role: "manager",
-            requiresPasswordChange: true
-          },
-          {
-            username: "manager3",
-            email: "manager3@queencityelite.com",
-            passwordHash: hashedPassword,
-            fullName: "Manager Three",
-            role: "manager",
-            requiresPasswordChange: true
-          },
-          {
-            username: "manager4",
-            email: "manager4@queencityelite.com",
-            passwordHash: hashedPassword,
-            fullName: "Manager Four",
-            role: "manager",
-            requiresPasswordChange: true
-          },
-          {
-            username: "manager5",
-            email: "manager5@queencityelite.com",
-            passwordHash: hashedPassword,
-            fullName: "Manager Five",
-            role: "manager",
-            requiresPasswordChange: true
+        // Initialize default manager users with randomly generated passwords
+        const generateSecurePassword = () => {
+          // Generate a random 16-character password
+          const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%';
+          let password = '';
+          const array = new Uint8Array(16);
+          crypto.getRandomValues(array);
+          for (let i = 0; i < 16; i++) {
+            password += chars[array[i] % chars.length];
           }
-        ];
+          return password;
+        };
+
+        const managerCredentials: Array<{ username: string; email: string; fullName: string; password: string }> = [];
+        
+        const defaultUsers: InsertUser[] = [];
+        
+        for (let i = 1; i <= 5; i++) {
+          const password = generateSecurePassword();
+          const hashedPassword = await bcrypt.hash(password, 10);
+          
+          managerCredentials.push({
+            username: `manager${i}`,
+            email: `manager${i}@queencityelite.com`,
+            fullName: `Manager ${['One', 'Two', 'Three', 'Four', 'Five'][i - 1]}`,
+            password
+          });
+          
+          defaultUsers.push({
+            username: `manager${i}`,
+            email: `manager${i}@queencityelite.com`,
+            passwordHash: hashedPassword,
+            fullName: `Manager ${['One', 'Two', 'Three', 'Four', 'Five'][i - 1]}`,
+            role: "manager",
+            requiresPasswordChange: true
+          });
+        }
         
         for (const user of defaultUsers) {
           try {
@@ -249,11 +240,16 @@ export class DbStorage implements IStorage {
           }
         }
         
-        console.log('Default manager users created');
-        console.log('Default login credentials:');
-        console.log('Username: manager1, manager2, manager3, manager4, or manager5');
-        console.log('Password: Temp123456');
-        console.log('(You will be prompted to change your password on first login)');
+        console.log('Default manager users created with randomly generated passwords:');
+        console.log('IMPORTANT: Save these credentials securely - they will only be shown once!');
+        console.log('You will be required to change your password on first login.');
+        console.log('---');
+        managerCredentials.forEach(cred => {
+          console.log(`Username: ${cred.username}`);
+          console.log(`Email: ${cred.email}`);
+          console.log(`Temporary Password: ${cred.password}`);
+          console.log('---');
+        });
       }
       
       this.initialized = true;
