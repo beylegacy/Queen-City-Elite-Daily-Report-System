@@ -7,6 +7,10 @@ import { setupVite, serveStatic, log } from "./vite";
 import { initializeScheduler } from "./scheduler";
 
 const app = express();
+
+// Trust proxy for Replit's HTTPS termination - required for secure cookies
+app.set('trust proxy', 1);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -31,7 +35,7 @@ app.use(session({
   store: sessionStore,
   secret: process.env.SESSION_SECRET || 'your-secret-key-change-this-in-production',
   resave: false,
-  saveUninitialized: true,
+  saveUninitialized: false,
   cookie: {
     // Replit always uses HTTPS for published apps and dev domains
     // Only localhost needs secure: false

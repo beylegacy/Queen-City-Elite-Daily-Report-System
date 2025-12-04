@@ -118,12 +118,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
           (req.session as any).cookie.maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
         }
         
-        res.json({
-          id: user.id,
-          username: user.username,
-          fullName: user.fullName,
-          role: user.role,
-          requiresPasswordChange: user.requiresPasswordChange
+        console.log('Login successful for user:', user.username);
+        console.log('Session ID after login:', req.sessionID);
+        console.log('Passport data:', JSON.stringify((req.session as any)?.passport));
+        
+        // Explicitly save session before sending response
+        req.session.save((saveErr) => {
+          if (saveErr) {
+            console.error('Session save error:', saveErr);
+            return res.status(500).json({ message: 'Session save error' });
+          }
+          
+          console.log('Session saved successfully with ID:', req.sessionID);
+          
+          res.json({
+            id: user.id,
+            username: user.username,
+            fullName: user.fullName,
+            role: user.role,
+            requiresPasswordChange: user.requiresPasswordChange
+          });
         });
       });
     })(req, res, next);
@@ -148,6 +162,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/auth/me", (req, res) => {
+    console.log('Session ID:', req.sessionID);
+    console.log('Session user:', (req.session as any)?.passport?.user);
+    console.log('Is authenticated:', req.isAuthenticated());
+    console.log('Cookies:', req.headers.cookie);
+    
     if (req.isAuthenticated()) {
       const user = req.user as any;
       res.json({
