@@ -386,23 +386,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/reports/by-date/:date/:propertyId", async (req, res) => {
     try {
       const { date, propertyId } = req.params;
+      console.log('Fetching report for date:', date, 'propertyId:', propertyId);
       const report = await storage.getDailyReportByDateAndProperty(date, propertyId);
       if (!report) {
         return res.status(404).json({ message: "Report not found" });
       }
       res.json(report);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch report" });
+      console.error("Error fetching report by date:", error);
+      res.status(500).json({ message: "Failed to fetch report", error: error instanceof Error ? error.message : String(error) });
     }
   });
 
   app.post("/api/reports", async (req, res) => {
     try {
+      console.log('Creating report with data:', JSON.stringify(req.body));
       const validatedData = insertDailyReportSchema.parse(req.body);
       const report = await storage.createDailyReport(validatedData);
       res.status(201).json(report);
     } catch (error) {
-      res.status(400).json({ message: "Invalid report data" });
+      console.error("Error creating report:", error);
+      res.status(400).json({ message: "Invalid report data", error: error instanceof Error ? error.message : String(error) });
     }
   });
 
